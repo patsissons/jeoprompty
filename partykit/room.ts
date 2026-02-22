@@ -1,0 +1,220 @@
+import type * as Party from "partykit/server";
+
+import {
+  applyRoundResults,
+  createInitialRoomState,
+  markDisconnected,
+  maybeAdvanceFromPrompting,
+  maybeAdvancePostResults,
+  resetGame,
+  startGame,
+  submitPrompt,
+  upsertParticipant
+} from "../lib/game/room-state";
+import type { ClientMessage, RoomState, ScoredSubmission, ServerMessage } from "../lib/game/types";
+
+const STORAGE_KEY = "jeoprompty-room-state";
+
+function parseMessage(raw: string): ClientMessage | null {
+  try {
+    return JSON.parse(raw) as ClientMessage;
+  } catch {
+    return null;
+  }
+}
+
+function stringify(message: ServerMessage) {
+  return JSON.stringify(message);
+}
+
+function isScoredSubmissionArray(value: unknown): value is ScoredSubmission[] {
+  if (!Array.isArray(value)) return false;
+  return value.every((item) => {
+    if (!item || typeof item !== "object") return false;
+    const row = item as Record<string, unknown>;
+    return (
+      typeof row.playerId === "string" &&
+      typeof row.prompt === "string" &&
+      typeof row.answer === "string" &&
+      typeof row.exactMatch === "boolean" &&
+      typeof row.semanticScore === "number" &&
+      typeof row.lexicalScore === "number" &&
+      typeof row.hallucinationPenalty === "number" &&
+      typeof row.scoreDelta === "number" &&
+      typeof row.rejected === "boolean"
+    );
+  });
+}
+
+export default class JeopromptyServer implements Party.Server {
+  private statePromise: Promise<RoomState> | null = null;
+
+  constructor(readonly room: Party.Room) {}
+
+  private async loadState() {
+    if (!this.statePromise) {
+      this.statePromise = (async () => {
+        const existing = await this.room.storage?.get<RoomState>(STORAGE_KEY);
+        return (
+          existing ??
+          createInitialRoomState(String(this.room.id).replace(/[^a-z0-9]/gi, "").toUpperCase())
+        );
+      })();
+    }
+    return this.statePromise;
+  }
+
+  private async saveState(state: RoomState) {
+    await this.room.storage?.put(STORAGE_KEY, state);
+  }
+
+  private async broadcastState() {
+    const state = await this.loadState();
+    this.room.broadcast(stringify({ type: "state", payload: state }));
+    await this.saveState(state);
+  }
+
+  private sendError(connection: Party.Connection, message: string) {
+    connection.send(stringify({ type: "error", payload: { message } }));
+  }
+
+  onConnect(connection: Party.Connection) {
+    connection.send(
+      stringify({
+        type: "toast",
+        payload: { message: "Connected. Join the room to sync state." }
+      })
+    );
+  }
+
+  async onClose(connection: Party.Connection) {
+    const state = await this.loadState();
+    markDisconnected(state, connection.id);
+    await this.broadcastState();
+  }
+
+  async onMessage(rawMessage: string, connection: Party.Connection) {
+    const message = parseMessage(rawMessage);
+    if (!message) {
+      this.sendError(connection, "Invalid message payload.");
+      return;
+    }
+
+    const state = await this.loadState();
+
+    switch (message.type) {
+      case "join": {
+        const { sessionId, nickname, role } = message.payload;
+        if (!sessionId || !nickname.trim()) {
+          this.sendError(connection, "Nickname and session are required.");
+          return;
+        }
+        const playerCount = state.participants.filter((p) => p.role === "player").length;
+        const alreadyPlayer = state.participants.some(
+          (p) => p.sessionId === sessionId && p.role === "player"
+        );
+        if (role === "player" && !alreadyPlayer && playerCount >= state.maxPlayers) {
+          this.sendError(connection, "This room is full.");
+          return;
+        }
+        upsertParticipant(state, {
+          sessionId,
+          connectionId: connection.id,
+          nickname: nickname.trim(),
+          role
+        });
+        connection.send(stringify({ type: "state", payload: state }));
+        await this.broadcastState();
+        return;
+      }
+
+      case "start_game": {
+        const playerCount = state.participants.filter((p) => p.role === "player").length;
+        if (playerCount < 1) {
+          this.sendError(connection, "Need at least one player.");
+          return;
+        }
+        startGame(state);
+        await this.broadcastState();
+        return;
+      }
+
+      case "submit_prompt": {
+        const submitter = state.participants.find((p) => p.connectionId === connection.id);
+        if (!submitter) {
+          this.sendError(connection, "Join the room before submitting.");
+          return;
+        }
+        const result = submitPrompt(state, submitter.sessionId, message.payload.prompt);
+        if (!result.ok) {
+          this.sendError(connection, result.message ?? "Submit failed.");
+          return;
+        }
+        maybeAdvanceFromPrompting(state);
+        await this.broadcastState();
+        return;
+      }
+
+      case "request_advance": {
+        const advanced = maybeAdvanceFromPrompting(state) || maybeAdvancePostResults(state);
+        if (advanced) {
+          await this.broadcastState();
+        } else {
+          // Keep peers in sync if the caller was stale.
+          connection.send(stringify({ type: "state", payload: state }));
+        }
+        return;
+      }
+
+      case "apply_round_results": {
+        if (
+          !message.payload?.roundId ||
+          !isScoredSubmissionArray(message.payload.results)
+        ) {
+          this.sendError(connection, "Invalid round results payload.");
+          return;
+        }
+
+        const submittedPlayers = new Set(state.submissions.map((s) => s.playerId));
+        const normalizedResults: ScoredSubmission[] = message.payload.results
+          .filter((r) => submittedPlayers.has(r.playerId))
+          .map((r) => {
+            const prompt = state.submissions.find((s) => s.playerId === r.playerId)?.prompt ?? r.prompt;
+            return {
+              ...r,
+              prompt
+            };
+          });
+
+        const result = applyRoundResults(state, message.payload.roundId, normalizedResults);
+        if (!result.ok) {
+          this.sendError(connection, result.message ?? "Could not apply round results.");
+          return;
+        }
+        await this.broadcastState();
+        return;
+      }
+
+      case "reset_game": {
+        resetGame(state);
+        await this.broadcastState();
+        return;
+      }
+
+      case "ping": {
+        const advanced = maybeAdvanceFromPrompting(state) || maybeAdvancePostResults(state);
+        if (advanced) {
+          await this.broadcastState();
+        } else {
+          connection.send(stringify({ type: "state", payload: state }));
+          await this.saveState(state);
+        }
+        return;
+      }
+
+      default: {
+        this.sendError(connection, "Unsupported message type.");
+      }
+    }
+  }
+}

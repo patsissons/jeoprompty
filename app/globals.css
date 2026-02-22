@@ -1,0 +1,73 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --font-display: "Avenir Next", "Trebuchet MS", "Segoe UI", sans-serif;
+  --font-mono: "IBM Plex Mono", "SFMono-Regular", "Menlo", "Monaco", monospace;
+  --background: 206 65% 8%;
+  --foreground: 210 40% 96%;
+  --card: 208 45% 12%;
+  --card-foreground: 210 40% 96%;
+  --border: 204 28% 24%;
+  --input: 204 28% 24%;
+  --primary: 36 100% 58%;
+  --primary-foreground: 220 35% 8%;
+  --secondary: 188 84% 42%;
+  --secondary-foreground: 210 40% 98%;
+  --muted: 209 30% 16%;
+  --muted-foreground: 210 18% 76%;
+  --accent: 336 81% 57%;
+  --accent-foreground: 210 40% 98%;
+  --destructive: 0 84% 60%;
+  --destructive-foreground: 210 40% 98%;
+  --radius: 1rem;
+}
+
+* {
+  @apply border-border;
+}
+
+html,
+body {
+  min-height: 100%;
+}
+
+body {
+  @apply bg-background text-foreground antialiased;
+  font-family: var(--font-display);
+  background-image:
+    radial-gradient(circle at 10% 10%, rgba(14, 165, 233, 0.18), transparent 40%),
+    radial-gradient(circle at 90% 0%, rgba(251, 146, 60, 0.18), transparent 45%),
+    radial-gradient(circle at 50% 100%, rgba(236, 72, 153, 0.12), transparent 35%);
+}
+
+code,
+pre,
+.font-mono {
+  font-family: var(--font-mono);
+}
+
+.glass {
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.05),
+    rgba(255, 255, 255, 0.02)
+  );
+  backdrop-filter: blur(12px);
+}
+
+.noise-grid {
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+  background-size: 20px 20px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation: none !important;
+    transition-duration: 0s !important;
+    scroll-behavior: auto !important;
+  }
+}
