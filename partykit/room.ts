@@ -3,6 +3,7 @@ import type * as Party from "partykit/server";
 import {
   applyRoundResults,
   createInitialRoomState,
+  isNicknameTaken,
   markDisconnected,
   maybeAdvanceFromPrompting,
   maybeAdvancePostResults,
@@ -123,8 +124,13 @@ export default class JeopromptyServer implements Party.Server {
     switch (message.type) {
       case "join": {
         const { sessionId, nickname, role } = message.payload;
-        if (!sessionId || !nickname.trim()) {
+        const trimmedNickname = nickname.trim();
+        if (!sessionId || !trimmedNickname) {
           this.sendError(connection, "Nickname and session are required.");
+          return;
+        }
+        if (isNicknameTaken(state, trimmedNickname, { excludeSessionId: sessionId })) {
+          this.sendError(connection, "That nickname is already taken.");
           return;
         }
         const playerCount = state.participants.filter((p) => p.role === "player").length;
@@ -138,7 +144,7 @@ export default class JeopromptyServer implements Party.Server {
         upsertParticipant(state, {
           sessionId,
           connectionId: connection.id,
-          nickname: nickname.trim(),
+          nickname: trimmedNickname,
           role
         });
         connection.send(stringify({ type: "state", payload: state }));

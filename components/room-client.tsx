@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Copy, Loader2, RefreshCcw, Rocket, Timer, Users, Wifi } from "lucide-react";
 
 import { Leaderboard } from "@/components/leaderboard";
@@ -65,6 +66,8 @@ function statusTextForPlayer(player?: Participant | null) {
   }
 }
 
+const NICKNAME_TAKEN_ERROR = "That nickname is already taken.";
+
 export function RoomClient({
   roomCode,
   watchMode,
@@ -74,6 +77,7 @@ export function RoomClient({
   watchMode: boolean;
   initialNickname?: string;
 }) {
+  const router = useRouter();
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [nickname, setNickname] = useState(initialNickname?.slice(0, 24) ?? "");
   const [draftPrompt, setDraftPrompt] = useState("");
@@ -151,6 +155,18 @@ export function RoomClient({
   useEffect(() => {
     setTopicDraft(state?.gameTopic ?? "");
   }, [state?.gameTopic]);
+
+  useEffect(() => {
+    if (room.lastError !== NICKNAME_TAKEN_ERROR) return;
+
+    const params = new URLSearchParams({
+      room: roomCode.toUpperCase(),
+      nick: nickname.trim(),
+      joinError: "nickname_taken"
+    });
+
+    router.replace(`/?${params.toString()}`);
+  }, [nickname, room.lastError, roomCode, router]);
 
   function handleCopyGuestUrl() {
     const absolute = `${window.location.origin}/room/${roomCode.toLowerCase()}?watch=1`;

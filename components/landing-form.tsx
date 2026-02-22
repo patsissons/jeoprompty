@@ -17,9 +17,18 @@ function generateRandomRoomCode() {
   );
 }
 
-export function LandingForm({ initialRoomCode }: { initialRoomCode?: string }) {
+export function LandingForm({
+  initialRoomCode,
+  initialNickname,
+  initialJoinError
+}: {
+  initialRoomCode?: string;
+  initialNickname?: string;
+  initialJoinError?: string;
+}) {
   const router = useRouter();
-  const [nickname, setNickname] = useState("");
+  const [nickname, setNickname] = useState(() => (initialNickname ?? "").slice(0, 24));
+  const [joinError, setJoinError] = useState(initialJoinError ?? "");
   const [roomCode, setRoomCode] = useState(
     () => normalizeRoomCodeCookie(initialRoomCode) || generateRandomRoomCode()
   );
@@ -52,6 +61,11 @@ export function LandingForm({ initialRoomCode }: { initialRoomCode?: string }) {
         </CardDescription>
       </CardHeader>
       <CardContent className="relative space-y-4">
+        {joinError ? (
+          <div className="rounded-xl border border-rose-300/20 bg-rose-400/10 p-3 text-sm text-rose-100">
+            {joinError}
+          </div>
+        ) : null}
         <div className="space-y-2">
           <label className="text-xs uppercase tracking-[0.2em] text-muted-foreground">
             Nickname
@@ -59,7 +73,10 @@ export function LandingForm({ initialRoomCode }: { initialRoomCode?: string }) {
           <Input
             maxLength={24}
             value={nickname}
-            onChange={(event) => setNickname(event.target.value)}
+            onChange={(event) => {
+              setNickname(event.target.value);
+              if (joinError) setJoinError("");
+            }}
             placeholder="James Bond"
           />
         </div>

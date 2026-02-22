@@ -3,9 +3,28 @@ import { cookies } from "next/headers";
 import { LandingForm } from "@/components/landing-form";
 import { ROOM_CODE_COOKIE, normalizeRoomCodeCookie } from "@/lib/room-code-cookie";
 
-export default function HomePage() {
+type Props = {
+  searchParams?: Record<string, string | string[] | undefined>;
+};
+
+function firstParam(value: string | string[] | undefined) {
+  return Array.isArray(value) ? value[0] : value;
+}
+
+function joinErrorMessage(code: string | undefined) {
+  if (code === "nickname_taken") {
+    return "That nickname is already taken in this room. Pick a different name and try again.";
+  }
+  return undefined;
+}
+
+export default function HomePage({ searchParams }: Props) {
   const cookieStore = cookies();
+  const roomFromQuery = normalizeRoomCodeCookie(firstParam(searchParams?.room));
   const lastRoomCode = normalizeRoomCodeCookie(cookieStore.get(ROOM_CODE_COOKIE)?.value);
+  const initialRoomCode = roomFromQuery || lastRoomCode;
+  const initialNickname = firstParam(searchParams?.nick);
+  const initialJoinError = joinErrorMessage(firstParam(searchParams?.joinError));
 
   return (
     <main className="min-h-screen px-4 py-8 sm:px-6">
@@ -42,7 +61,11 @@ export default function HomePage() {
             </div>
           </div>
         </section>
-        <LandingForm initialRoomCode={lastRoomCode} />
+        <LandingForm
+          initialRoomCode={initialRoomCode}
+          initialNickname={initialNickname}
+          initialJoinError={initialJoinError}
+        />
       </div>
     </main>
   );

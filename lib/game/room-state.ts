@@ -21,10 +21,15 @@ function newRoundId() {
 }
 
 const MAX_TOPIC_LENGTH = 80;
+const MAX_NICKNAME_LENGTH = 24;
 
 function normalizeGameTopic(topic: string | null | undefined) {
   const normalized = (topic ?? "").trim().replace(/\s+/g, " ").slice(0, MAX_TOPIC_LENGTH);
   return normalized
+}
+
+function normalizeNicknameForComparison(nickname: string) {
+  return nickname.trim().slice(0, MAX_NICKNAME_LENGTH).toLocaleLowerCase();
 }
 
 export function createInitialRoomState(roomCode: string): RoomState {
@@ -58,7 +63,7 @@ export function upsertParticipant(
   const existing = state.participants.find((p) => p.sessionId === input.sessionId);
   if (existing) {
     existing.connectionId = input.connectionId;
-    existing.nickname = input.nickname.slice(0, 24);
+    existing.nickname = input.nickname.slice(0, MAX_NICKNAME_LENGTH);
     existing.role = input.role;
     existing.connected = true;
     existing.roundStatus = deriveRoundStatusForParticipant(state, existing);
@@ -66,7 +71,7 @@ export function upsertParticipant(
     const participant: Participant = {
       sessionId: input.sessionId,
       connectionId: input.connectionId,
-      nickname: input.nickname.slice(0, 24),
+      nickname: input.nickname.slice(0, MAX_NICKNAME_LENGTH),
       role: input.role,
       connected: true,
       joinedAt: now(),
@@ -85,6 +90,20 @@ export function upsertParticipant(
   }
   state.resolverSessionId = selectResolver(state);
   touch(state);
+}
+
+export function isNicknameTaken(
+  state: RoomState,
+  nickname: string,
+  options?: { excludeSessionId?: string }
+) {
+  const target = normalizeNicknameForComparison(nickname);
+  if (!target) return false;
+  return state.participants.some(
+    (participant) =>
+      participant.sessionId !== options?.excludeSessionId &&
+      normalizeNicknameForComparison(participant.nickname) === target
+  );
 }
 
 export function markDisconnected(state: RoomState, connectionId: string) {
