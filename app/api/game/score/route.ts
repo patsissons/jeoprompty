@@ -100,7 +100,8 @@ export async function POST(request: Request) {
     }
 
     try {
-      const answer = await generateConciseAnswer(filter.sanitizedPrompt);
+      const words = target.split(" ").length;
+      const answer = await generateConciseAnswer(filter.sanitizedPrompt, words);
       preliminaryResults.push({
         playerId: submission.playerId,
         prompt: filter.sanitizedPrompt,

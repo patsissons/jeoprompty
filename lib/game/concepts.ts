@@ -347,13 +347,11 @@ export async function generateCreativeTopic() {
         "You invent game topics for a party trivia prompt-writing game.",
         "Generate ONE fun, quirky, and creative but playable topic.",
         "The topic should feel open-ended enough for many different concepts.",
-        "Include at least one anchor word or phrase from these domains so downstream matching stays thematic:",
-        topicAnchorList(),
         "Output only the topic text. No quotes. No numbering. No explanation."
       ].join(" "),
       [
         `Make it surprising, fun, and ever so slightly chaotic (nonce: ${randomNonce()}).`,
-        "Aim for 3-8 words. Avoid punctuation.",
+        "Aim for 2-4 words. Avoid punctuation.",
         "Examples of vibe (not content to copy): midnight radio, museum heist, cosmic road trip, fever dream."
       ].join(" "),
     );
@@ -379,13 +377,14 @@ export async function generateCreativeConcept({
         "Generate ONE target concept that is answerable, specific, and fun to write clever questions that describes the concept, jeopardy style.",
         "The target can be a person, place, event, object, scientific idea, artwork, phenomenon, or cultural thing.",
         "Keep it recognizable but not too easy; avoid ultra-obscure trivia.",
+        "Avoid all conjunction, preposition, and logical marker words.",
         "Output only the concept text. No quotes. No numbering. No explanation."
       ].join(" "),
       [
         `Topic: ${topic?.trim() || "expect the unexpected"}`,
         `Avoid these previous targets: ${used.slice(-20).join(" | ") || "none"}`,
         `Be original and varied (nonce: ${randomNonce()}).`,
-        "Aim for 3-8 words. Avoid punctuation.",
+        "Aim for 3-5 words. Avoid punctuation.",
       ].join("\n"),
     );
 

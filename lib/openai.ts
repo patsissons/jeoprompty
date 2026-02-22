@@ -87,13 +87,13 @@ export async function generateResponseText({
   return output;
 }
 
-export async function generateConciseAnswer(prompt: string) {
+export async function generateConciseAnswer(prompt: string, words: number) {
   const answer = await generateResponseText({
     systemPrompt:
-      "Answer with only the final answer text. Keep it concise and specific. Prefer 1-8 words. Never exceed 256 characters.",
+      `Answer with only the final answer text. Keep it concise and specific. Must be exactly ${words} words.`,
     userPrompt: prompt,
   });
-  return answer.slice(0, 256);
+  return answer;
 }
 
 type EmbeddingPayload = {
