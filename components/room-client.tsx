@@ -13,15 +13,17 @@ import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
 import { MAX_PROMPT_SECONDS } from "@/lib/game/constants";
 import type { Participant } from "@/lib/game/types";
+import { setRoomCodeCookie } from "@/lib/room-code-cookie";
 import { useRoomConnection } from "@/lib/use-room-connection";
 import { cn, formatSeconds } from "@/lib/utils";
 
-function getOrCreateLocalSessionId() {
+function getOrCreateTabSessionId() {
   const key = "jeoprompty.sessionId";
-  const existing = localStorage.getItem(key);
+  const storage = window.sessionStorage;
+  const existing = storage.getItem(key);
   if (existing) return existing;
   const created = crypto.randomUUID();
-  localStorage.setItem(key, created);
+  storage.setItem(key, created);
   return created;
 }
 
@@ -78,7 +80,7 @@ export function RoomClient({
   const [copied, setCopied] = useState(false);
 
   useEffect(() => {
-    setSessionId(getOrCreateLocalSessionId());
+    setSessionId(getOrCreateTabSessionId());
     const savedNick = localStorage.getItem("jeoprompty.nickname");
     if (!initialNickname && savedNick) {
       setNickname(savedNick);
@@ -88,6 +90,10 @@ export function RoomClient({
   useEffect(() => {
     if (nickname.trim()) localStorage.setItem("jeoprompty.nickname", nickname.trim());
   }, [nickname]);
+
+  useEffect(() => {
+    setRoomCodeCookie(roomCode);
+  }, [roomCode]);
 
   const role = watchMode ? "guest" : "player";
   const canJoin = Boolean(sessionId && nickname.trim());
@@ -153,7 +159,7 @@ export function RoomClient({
               onChange={(event) => setNickname(event.target.value)}
               maxLength={24}
             />
-            <Button onClick={() => setSessionId(getOrCreateLocalSessionId())} disabled={!nickname.trim()}>
+            <Button onClick={() => setSessionId(getOrCreateTabSessionId())} disabled={!nickname.trim()}>
               Continue
             </Button>
           </CardContent>
@@ -324,7 +330,7 @@ export function RoomClient({
               </CardHeader>
               <CardContent className="space-y-2 text-sm text-muted-foreground">
                 <p>1. Direct match to the target gets max points.</p>
-                <p>2. Otherwise semantic similarity + Levenshtein closeness are combined.</p>
+                <p>2. Otherwise semantic similarity + algorithmic closeness are combined.</p>
                 <p>3. Long answers (&gt;10 words) get a hallucination penalty.</p>
                 <p>4. Cheating prompts (target leakage / spelling hints) are rejected.</p>
               </CardContent>

@@ -1,6 +1,12 @@
+import { cookies } from "next/headers";
+
 import { LandingForm } from "@/components/landing-form";
+import { ROOM_CODE_COOKIE, normalizeRoomCodeCookie } from "@/lib/room-code-cookie";
 
 export default function HomePage() {
+  const cookieStore = cookies();
+  const lastRoomCode = normalizeRoomCodeCookie(cookieStore.get(ROOM_CODE_COOKIE)?.value);
+
   return (
     <main className="min-h-screen px-4 py-8 sm:px-6">
       <div className="mx-auto grid w-full max-w-6xl gap-8 lg:grid-cols-[1.15fr_0.85fr] lg:items-stretch">
@@ -35,7 +41,7 @@ export default function HomePage() {
             </div>
           </div>
         </section>
-        <LandingForm />
+        <LandingForm initialRoomCode={lastRoomCode} />
       </div>
     </main>
   );

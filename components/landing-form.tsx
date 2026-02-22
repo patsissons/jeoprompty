@@ -7,12 +7,22 @@ import { Play, Tv2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { normalizeRoomCodeCookie, setRoomCodeCookie } from "@/lib/room-code-cookie";
 import { safeUpperRoomCode } from "@/lib/utils";
 
-export function LandingForm() {
+function generateRandomRoomCode() {
+  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+  return Array.from({ length: 4 }, () => chars[Math.floor(Math.random() * chars.length)]).join(
+    ""
+  );
+}
+
+export function LandingForm({ initialRoomCode }: { initialRoomCode?: string }) {
   const router = useRouter();
   const [nickname, setNickname] = useState("");
-  const [roomCode, setRoomCode] = useState("");
+  const [roomCode, setRoomCode] = useState(
+    () => normalizeRoomCodeCookie(initialRoomCode) || generateRandomRoomCode()
+  );
 
   const cleanedCode = useMemo(() => safeUpperRoomCode(roomCode), [roomCode]);
   const canJoin = nickname.trim().length > 0 && cleanedCode.length >= 4;
@@ -20,6 +30,7 @@ export function LandingForm() {
   function handleJoin(mode: "player" | "guest") {
     if (!canJoin) return;
     const code = cleanedCode.toLowerCase();
+    setRoomCodeCookie(cleanedCode);
     const params = new URLSearchParams({ nick: nickname.trim() });
     if (mode === "guest") {
       params.set("watch", "1");
@@ -28,9 +39,7 @@ export function LandingForm() {
   }
 
   function generateRoomCode() {
-    const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
-    const next = Array.from({ length: 4 }, () => chars[Math.floor(Math.random() * chars.length)]).join("");
-    setRoomCode(next);
+    setRoomCode(generateRandomRoomCode());
   }
 
   return (
