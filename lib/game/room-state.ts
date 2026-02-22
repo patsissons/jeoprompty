@@ -4,7 +4,6 @@ import {
   MAX_PROMPT_SECONDS,
   TOTAL_ROUNDS
 } from "./constants";
-import { pickConcept, pickRandomTopic } from "./concepts";
 import type {
   Participant,
   RoomState,
@@ -25,7 +24,7 @@ const MAX_TOPIC_LENGTH = 80;
 
 function normalizeGameTopic(topic: string | null | undefined) {
   const normalized = (topic ?? "").trim().replace(/\s+/g, " ").slice(0, MAX_TOPIC_LENGTH);
-  return normalized || pickRandomTopic();
+  return normalized
 }
 
 export function createInitialRoomState(roomCode: string): RoomState {
@@ -33,7 +32,7 @@ export function createInitialRoomState(roomCode: string): RoomState {
   return {
     roomCode,
     phase: "lobby",
-    gameTopic: pickRandomTopic(),
+    gameTopic: "",
     roundIndex: 0,
     totalRounds: TOTAL_ROUNDS,
     maxPlayers: MAX_PLAYERS,
@@ -114,8 +113,7 @@ export function startGame(state: RoomState, initialTarget?: string) {
 }
 
 export function beginRound(state: RoomState, usedTargets: string[], targetOverride?: string) {
-  const target =
-    targetOverride?.trim().slice(0, 256) || pickConcept(usedTargets, state.gameTopic);
+  const target = targetOverride?.trim().slice(0, 256) || ""
   state.phase = "prompting";
   state.currentTarget = target;
   state.currentRoundId = newRoundId();

@@ -1,6 +1,5 @@
 import type * as Party from "partykit/server";
 
-import { pickRandomTopic } from "../lib/game/concepts";
 import {
   applyRoundResults,
   createInitialRoomState,
@@ -77,9 +76,6 @@ export default class JeopromptyServer implements Party.Server {
         const state =
           existing ??
           createInitialRoomState(String(this.room.id).replace(/[^a-z0-9]/gi, "").toUpperCase());
-        if (!(state as { gameTopic?: string }).gameTopic) {
-          state.gameTopic = pickRandomTopic();
-        }
         return state;
       })();
     }

@@ -25,10 +25,21 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Invalid JSON request." }, { status: 400 });
   }
 
-  const concept = await generateCreativeConcept({
-    topic: parsed.topic,
-    used: parsed.usedTargets ?? []
-  });
+  let concept = "";
+
+  for (let i = 0; i < 10; i++) {
+    concept = await generateCreativeConcept({
+      topic: parsed.topic,
+      used: parsed.usedTargets ?? []
+    });
+    if (concept) {
+      break;
+    }
+  }
+
+  if (!concept) {
+    return NextResponse.json({ error: "No concept generated." }, { status: 500 });
+  }
 
   return NextResponse.json({ concept });
 }
