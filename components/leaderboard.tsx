@@ -36,11 +36,13 @@ function statusLabel(status: Participant["roundStatus"]) {
 
 export function Leaderboard({
   participants,
+  hostSessionId,
   highlightSessionId,
   title = "Leaderboard",
   topic
 }: {
   participants: Participant[];
+  hostSessionId?: string | null;
   highlightSessionId?: string;
   title?: string;
   topic?: string | null;
@@ -84,7 +86,14 @@ export function Leaderboard({
                 {index + 1}
               </div>
               <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-2 gap-y-1 sm:flex-nowrap">
-                <div className="min-w-0 truncate text-sm font-medium">{player.nickname}</div>
+                <div className="min-w-0 truncate text-sm font-medium">
+                  {player.sessionId === hostSessionId ? (
+                    <span className="mr-1" role="img" aria-label="Host">
+                      👑
+                    </span>
+                  ) : null}
+                  {player.nickname}
+                </div>
                 <div className="shrink-0">
                   <Badge variant={statusVariant(player.roundStatus)}>
                     {statusLabel(player.roundStatus)}

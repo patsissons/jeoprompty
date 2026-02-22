@@ -221,7 +221,7 @@ export function RoomClient({
                       Room {roomCode.toUpperCase()}
                     </CardTitle>
                     <Badge variant={watchMode ? "secondary" : "default"}>
-                      {watchMode ? "Guest" : "Player"}
+                      {watchMode ? "Guest" : isHost ? "👑 Player" : "Player"}
                     </Badge>
                   </div>
                   <CardDescription className="mt-1">
@@ -345,6 +345,7 @@ export function RoomClient({
         <div className="space-y-4">
           <Leaderboard
             participants={state?.participants ?? []}
+            hostSessionId={state?.hostSessionId}
             highlightSessionId={watchMode ? undefined : sessionId ?? undefined}
             title={watchMode ? "Live Leaderboard" : "Room Leaderboard"}
             topic={state?.gameTopic ?? null}
@@ -366,7 +367,14 @@ export function RoomClient({
                       key={player.sessionId}
                       className="flex items-center justify-between rounded-xl border border-white/10 bg-white/5 px-3 py-2"
                     >
-                      <span className="truncate text-sm">{player.nickname}</span>
+                      <span className="truncate text-sm">
+                        {player.sessionId === state?.hostSessionId ? (
+                          <span className="mr-1" role="img" aria-label="Host">
+                            👑
+                          </span>
+                        ) : null}
+                        {player.nickname}
+                      </span>
                       <Badge variant={player.submittedPrompt ? "success" : "warning"}>
                         {player.submittedPrompt ? "Submitted" : "Pending"}
                       </Badge>
