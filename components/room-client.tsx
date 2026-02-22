@@ -174,7 +174,7 @@ export function RoomClient({
   useEffect(() => {
     const activeTopic = state?.gameTopic?.trim();
     document.title = activeTopic
-      ? `Jeopardy! - ${activeTopic}`
+      ? `Jeoprompty! - ${activeTopic}`
       : `Jeoprompty! Room ${roomCode.toUpperCase()}`;
 
     return () => {
