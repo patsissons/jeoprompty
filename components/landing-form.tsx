@@ -34,7 +34,7 @@ export function LandingForm() {
   }
 
   return (
-    <Card className="relative overflow-hidden border-white/15 shadow-spotlight">
+    <Card className="relative h-full overflow-hidden border-white/15 shadow-spotlight">
       <div className="pointer-events-none absolute inset-0 noise-grid opacity-40" />
       <CardHeader className="relative">
         <CardTitle className="text-2xl font-bold tracking-tight">Enter The Room</CardTitle>
