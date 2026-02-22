@@ -179,12 +179,17 @@ export function useRoomConnection({
     if (!state?.phaseEndsAt) return 0;
     return Math.max(0, Math.ceil((state.phaseEndsAt - nowMs) / 1000));
   }, [nowMs, state?.phaseEndsAt]);
+  const currentRoundMsRemaining = useMemo(() => {
+    if (!state?.phaseEndsAt) return 0;
+    return Math.max(0, state.phaseEndsAt - nowMs);
+  }, [nowMs, state?.phaseEndsAt]);
 
   return {
     state,
     connectionStatus,
     lastError,
     isResolver,
+    currentRoundMsRemaining,
     currentRoundSecondsRemaining,
     startGame: () => send({ type: "start_game" }),
     submitPrompt: (prompt: string) => send({ type: "submit_prompt", payload: { prompt } }),
