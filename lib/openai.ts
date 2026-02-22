@@ -1,4 +1,4 @@
-import "server-only";
+"use server";
 
 import { EMBEDDING_MODEL, MODEL_NAME } from "@/lib/game/constants";
 
