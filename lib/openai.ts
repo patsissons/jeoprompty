@@ -56,7 +56,6 @@ export async function generateConciseAnswer(prompt: string) {
     method: "POST",
     body: JSON.stringify({
       model: MODEL_NAME,
-      temperature: 0.1,
       max_output_tokens: 64,
       input: [
         {

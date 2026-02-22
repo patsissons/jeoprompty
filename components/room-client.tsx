@@ -78,6 +78,7 @@ export function RoomClient({
   const [nickname, setNickname] = useState(initialNickname?.slice(0, 24) ?? "");
   const [draftPrompt, setDraftPrompt] = useState("");
   const [copied, setCopied] = useState(false);
+  const [pendingSubmittedRoundId, setPendingSubmittedRoundId] = useState<string | null>(null);
 
   useEffect(() => {
     setSessionId(getOrCreateTabSessionId());
@@ -106,11 +107,15 @@ export function RoomClient({
   });
 
   const state = room.state;
+  const currentRoundId = state?.currentRoundId ?? null;
 
   const me = useMemo(
     () => state?.participants.find((participant) => participant.sessionId === sessionId) ?? null,
     [state?.participants, sessionId]
   );
+  const submittedThisRound =
+    Boolean(me?.submittedPrompt) ||
+    (state?.phase === "prompting" && Boolean(currentRoundId) && pendingSubmittedRoundId === currentRoundId);
 
   const secondsRemaining = room.currentRoundSecondsRemaining;
 
@@ -128,6 +133,18 @@ export function RoomClient({
 
   const missingJoinInfo = !nickname.trim() || !sessionId;
 
+  useEffect(() => {
+    // Reset the local draft when a new round starts (or game resets).
+    setDraftPrompt("");
+    setPendingSubmittedRoundId(null);
+  }, [currentRoundId]);
+
+  useEffect(() => {
+    if (me?.submittedPrompt) {
+      setPendingSubmittedRoundId(currentRoundId);
+    }
+  }, [currentRoundId, me?.submittedPrompt]);
+
   function handleCopyGuestUrl() {
     const absolute = `${window.location.origin}/room/${roomCode.toLowerCase()}?watch=1`;
     navigator.clipboard.writeText(absolute).catch(() => undefined);
@@ -137,6 +154,8 @@ export function RoomClient({
 
   function handleSubmitPrompt() {
     if (!draftPrompt.trim()) return;
+    if (state?.phase !== "prompting" || submittedThisRound) return;
+    setPendingSubmittedRoundId(currentRoundId);
     room.submitPrompt(draftPrompt.trim().slice(0, 256));
   }
 
@@ -263,7 +282,7 @@ export function RoomClient({
                   setDraftPrompt={setDraftPrompt}
                   statePhase={state?.phase ?? "lobby"}
                   myStatus={statusTextForPlayer(me)}
-                  submitted={Boolean(me?.submittedPrompt)}
+                  submitted={submittedThisRound}
                   submittedCount={submittedCount}
                   playerCount={state?.participants.filter((p) => p.role === "player").length ?? 0}
                 />
@@ -401,6 +420,13 @@ function PlayerPanel({
             placeholder="Example: What famous structure can be seen from space (according to a common myth)?"
             value={draftPrompt}
             onChange={(event) => setDraftPrompt(event.target.value.slice(0, 256))}
+            onKeyDown={(event) => {
+              if (event.key !== "Enter" || event.shiftKey || event.nativeEvent.isComposing) return;
+              event.preventDefault();
+              if (canEditPrompt && draftPrompt.trim()) {
+                onSubmit();
+              }
+            }}
             disabled={!canEditPrompt}
             maxLength={256}
           />
