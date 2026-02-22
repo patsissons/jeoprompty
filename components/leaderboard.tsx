@@ -74,24 +74,24 @@ export function Leaderboard({
             <div
               key={player.sessionId}
               className={[
-                "grid grid-cols-[auto_1fr_auto] items-center gap-3 rounded-xl border p-3",
+                "flex flex-wrap items-center gap-3 rounded-xl border p-3 sm:flex-nowrap",
                 highlightSessionId === player.sessionId
                   ? "border-cyan-300/30 bg-cyan-400/5"
                   : "border-white/10 bg-white/5"
               ].join(" ")}
             >
-              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-white/10 text-xs font-semibold">
+              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white/10 text-xs font-semibold">
                 {index + 1}
               </div>
-              <div className="min-w-0">
-                <div className="truncate text-sm font-medium">{player.nickname}</div>
-                <div className="mt-1">
+              <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-2 gap-y-1 sm:flex-nowrap">
+                <div className="min-w-0 truncate text-sm font-medium">{player.nickname}</div>
+                <div className="shrink-0">
                   <Badge variant={statusVariant(player.roundStatus)}>
                     {statusLabel(player.roundStatus)}
                   </Badge>
                 </div>
               </div>
-              <div className="text-right">
+              <div className="ml-auto flex shrink-0 items-center gap-2 text-right">
                 <div className="font-mono text-lg font-semibold">{player.score}</div>
                 <div className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
                   points
