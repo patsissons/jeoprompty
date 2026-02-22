@@ -160,6 +160,17 @@ export function RoomClient({
   }, [state?.gameTopic]);
 
   useEffect(() => {
+    const activeTopic = state?.gameTopic?.trim();
+    document.title = activeTopic
+      ? `Jeopardy! - ${activeTopic}`
+      : `Jeoprompty! Room ${roomCode.toUpperCase()}`;
+
+    return () => {
+      document.title = "Jeoprompty!";
+    };
+  }, [roomCode, state?.gameTopic]);
+
+  useEffect(() => {
     if (room.lastError !== NICKNAME_TAKEN_ERROR) return;
 
     const params = new URLSearchParams({
