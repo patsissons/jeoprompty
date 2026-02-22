@@ -27,8 +27,7 @@ export async function POST(request: Request) {
 
   const concept = await generateCreativeConcept({
     topic: parsed.topic,
-    used: parsed.usedTargets ?? [],
-    apiKey: process.env.OPENAI_API_KEY
+    used: parsed.usedTargets ?? []
   });
 
   return NextResponse.json({ concept });

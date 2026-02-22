@@ -5,9 +5,7 @@ import { generateCreativeTopic } from "@/lib/game/concepts";
 export const runtime = "nodejs";
 
 export async function POST() {
-  const topic = await generateCreativeTopic({
-    apiKey: process.env.OPENAI_API_KEY
-  });
+  const topic = await generateCreativeTopic();
 
   return NextResponse.json({ topic });
 }

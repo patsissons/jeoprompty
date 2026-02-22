@@ -51,32 +51,48 @@ function extractOutputText(payload: OpenAIResponsePayload) {
   return chunks.join(" ").trim();
 }
 
-export async function generateConciseAnswer(prompt: string) {
+export async function generateResponseText({
+  systemPrompt,
+  userPrompt,
+  maxOutputTokens = 64
+}: {
+  systemPrompt: string;
+  userPrompt: string;
+  maxOutputTokens?: number;
+}) {
   const payload = await openAiFetch("/v1/responses", {
     method: "POST",
     body: JSON.stringify({
       model: MODEL_NAME,
-      max_output_tokens: 64,
+      max_output_tokens: maxOutputTokens,
       reasoning: { effort: "minimal" },
       text: { verbosity: "low" },
       input: [
         {
           role: "system",
-          content:
-            "Answer with only the final answer text. Keep it concise and specific. Prefer 1-8 words. Never exceed 256 characters."
+          content: systemPrompt
         },
         {
           role: "user",
-          content: prompt
+          content: userPrompt
         }
       ]
     })
   });
 
-  const answer = extractOutputText(payload as OpenAIResponsePayload);
-  if (!answer) {
-    throw new Error("OpenAI returned an empty answer.");
+  const output = extractOutputText(payload as OpenAIResponsePayload);
+  if (!output) {
+    throw new Error("OpenAI returned empty output.");
   }
+  return output;
+}
+
+export async function generateConciseAnswer(prompt: string) {
+  const answer = await generateResponseText({
+    systemPrompt:
+      "Answer with only the final answer text. Keep it concise and specific. Prefer 1-8 words. Never exceed 256 characters.",
+    userPrompt: prompt,
+  });
   return answer.slice(0, 256);
 }
 

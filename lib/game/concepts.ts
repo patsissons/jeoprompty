@@ -1,4 +1,3 @@
-import { MODEL_NAME } from "./constants";
 import { normalizeText } from "./text";
 
 export const DEFAULT_CONCEPTS = [
@@ -302,33 +301,6 @@ export function pickConcept(used: string[], topic?: string | null) {
   return randomItem(themedPool.length > 0 ? themedPool : pool);
 }
 
-type OpenAIResponsePayload = {
-  output_text?: string;
-  output?: Array<{
-    content?: Array<{
-      type?: string;
-      text?: string;
-    }>;
-  }>;
-};
-
-type GenerationContext = {
-  apiKey?: string | null;
-};
-
-function extractOutputText(payload: OpenAIResponsePayload) {
-  if (typeof payload.output_text === "string" && payload.output_text.trim()) {
-    return payload.output_text.trim();
-  }
-  const chunks =
-    payload.output
-      ?.flatMap((entry) => entry.content ?? [])
-      .filter((item) => item.type === "output_text" || item.type === "text")
-      .map((item) => item.text?.trim())
-      .filter(Boolean) ?? [];
-  return chunks.join(" ").trim();
-}
-
 function randomNonce() {
   return Math.random().toString(36).slice(2, 10);
 }
@@ -347,48 +319,13 @@ function sanitizeSingleLineText(value: string, maxLength: number) {
 
 async function openAiGenerateOneLine(
   systemPrompt: string,
-  userPrompt: string,
-  context: GenerationContext
+  userPrompt: string
 ) {
-  const apiKey = context.apiKey?.trim();
-  if (!apiKey) {
-    throw new Error("OPENAI_API_KEY is not configured.");
-  }
-
-  const response = await fetch("https://api.openai.com/v1/responses", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${apiKey}`
-    },
-    body: JSON.stringify({
-      model: MODEL_NAME,
-      max_output_tokens: 80,
-      reasoning: { effort: "minimal" },
-      text: { verbosity: "low" },
-      input: [
-        {
-          role: "system",
-          content: systemPrompt
-        },
-        {
-          role: "user",
-          content: userPrompt
-        }
-      ]
-    })
+  const { generateResponseText } = await import("@/lib/openai");
+  return generateResponseText({
+    systemPrompt,
+    userPrompt,
   });
-
-  if (!response.ok) {
-    throw new Error(`OpenAI request failed (${response.status})`);
-  }
-
-  const payload = (await response.json()) as OpenAIResponsePayload;
-  const output = extractOutputText(payload);
-  if (!output) {
-    throw new Error("OpenAI returned empty output.");
-  }
-  return output;
 }
 
 function topicAnchorList() {
@@ -403,7 +340,7 @@ function fallbackCreativeConcept(topic: string | null | undefined, used: string[
   return pickConcept(used, topic);
 }
 
-export async function generateCreativeTopic(context: GenerationContext = {}) {
+export async function generateCreativeTopic() {
   try {
     const raw = await openAiGenerateOneLine(
       [
@@ -419,7 +356,6 @@ export async function generateCreativeTopic(context: GenerationContext = {}) {
         "Aim for 3-8 words. Avoid punctuation.",
         "Examples of vibe (not content to copy): midnight radio, museum heist, cosmic road trip, fever dream."
       ].join(" "),
-      context
     );
 
     const topic = sanitizeSingleLineText(raw, 120);
@@ -431,12 +367,10 @@ export async function generateCreativeTopic(context: GenerationContext = {}) {
 
 export async function generateCreativeConcept({
   topic,
-  used = [],
-  apiKey
+  used = []
 }: {
   topic?: string | null;
   used?: string[];
-  apiKey?: string | null;
 }) {
   try {
     const raw = await openAiGenerateOneLine(
@@ -453,7 +387,6 @@ export async function generateCreativeConcept({
         `Be original and varied (nonce: ${randomNonce()}).`,
         "Aim for 3-8 words. Avoid punctuation.",
       ].join("\n"),
-      { apiKey }
     );
 
     const concept = sanitizeSingleLineText(raw, 96);
