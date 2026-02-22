@@ -77,6 +77,7 @@ export function RoomClient({
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [nickname, setNickname] = useState(initialNickname?.slice(0, 24) ?? "");
   const [draftPrompt, setDraftPrompt] = useState("");
+  const [topicDraft, setTopicDraft] = useState("");
   const [copied, setCopied] = useState(false);
   const [pendingSubmittedRoundId, setPendingSubmittedRoundId] = useState<string | null>(null);
 
@@ -113,6 +114,7 @@ export function RoomClient({
     () => state?.participants.find((participant) => participant.sessionId === sessionId) ?? null,
     [state?.participants, sessionId]
   );
+  const isHost = Boolean(me && state?.hostSessionId === me.sessionId);
   const submittedThisRound =
     Boolean(me?.submittedPrompt) ||
     (state?.phase === "prompting" && Boolean(currentRoundId) && pendingSubmittedRoundId === currentRoundId);
@@ -145,6 +147,10 @@ export function RoomClient({
     }
   }, [currentRoundId, me?.submittedPrompt]);
 
+  useEffect(() => {
+    setTopicDraft(state?.gameTopic ?? "");
+  }, [state?.gameTopic]);
+
   function handleCopyGuestUrl() {
     const absolute = `${window.location.origin}/room/${roomCode.toLowerCase()}?watch=1`;
     navigator.clipboard.writeText(absolute).catch(() => undefined);
@@ -157,6 +163,12 @@ export function RoomClient({
     if (state?.phase !== "prompting" || submittedThisRound) return;
     setPendingSubmittedRoundId(currentRoundId);
     room.submitPrompt(draftPrompt.trim().slice(0, 256));
+  }
+
+  function handleTopicDraftChange(value: string) {
+    const next = value.slice(0, 80);
+    setTopicDraft(next);
+    room.setTopic(next);
   }
 
   if (missingJoinInfo) {
@@ -268,7 +280,7 @@ export function RoomClient({
                   {state?.currentTarget ?? "Waiting for game start"}
                 </div>
                 <p className="mt-2 text-xs text-muted-foreground">
-                  Secret concept shown to all players. Write a question that forces a concise answer.
+                  Round text shown to all players. Write a question that forces a concise answer. 
                 </p>
               </div>
 
@@ -277,6 +289,9 @@ export function RoomClient({
                   canStart={(state?.phase ?? "lobby") === "lobby"}
                   onStart={room.startGame}
                   onReset={room.resetGame}
+                  canEditTopic={isHost && (state?.phase ?? "lobby") === "lobby"}
+                  topicDraft={topicDraft}
+                  setTopicDraft={handleTopicDraftChange}
                   onSubmit={handleSubmitPrompt}
                   draftPrompt={draftPrompt}
                   setDraftPrompt={setDraftPrompt}
@@ -314,6 +329,7 @@ export function RoomClient({
             participants={state?.participants ?? []}
             highlightSessionId={watchMode ? undefined : sessionId ?? undefined}
             title={watchMode ? "Live Leaderboard" : "Room Leaderboard"}
+            topic={state?.gameTopic ?? null}
           />
 
           {watchMode ? (
@@ -363,6 +379,9 @@ function PlayerPanel({
   canStart,
   onStart,
   onReset,
+  canEditTopic,
+  topicDraft,
+  setTopicDraft,
   onSubmit,
   draftPrompt,
   setDraftPrompt,
@@ -375,6 +394,9 @@ function PlayerPanel({
   canStart: boolean;
   onStart: () => void;
   onReset: () => void;
+  canEditTopic: boolean;
+  topicDraft: string;
+  setTopicDraft: (value: string) => void;
   onSubmit: () => void;
   draftPrompt: string;
   setDraftPrompt: (value: string) => void;
@@ -393,6 +415,23 @@ function PlayerPanel({
         <CardDescription>{myStatus}</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
+        {statePhase === "lobby" && canEditTopic ? (
+          <div className="space-y-2">
+            <label className="text-xs uppercase tracking-[0.2em] text-muted-foreground">
+              Game topic (locks at start)
+            </label>
+            <Input
+              value={topicDraft}
+              onChange={(event) => setTopicDraft(event.target.value)}
+              placeholder="Topic for this game"
+              maxLength={80}
+            />
+            <p className="text-xs text-muted-foreground">
+              All round targets will be chosen to match this topic when possible.
+            </p>
+          </div>
+        ) : null}
+
         {statePhase === "lobby" ? (
           <div className="flex flex-wrap gap-3">
             <Button onClick={onStart} className="gap-2">

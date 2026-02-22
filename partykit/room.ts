@@ -1,5 +1,6 @@
 import type * as Party from "partykit/server";
 
+import { pickRandomTopic } from "../lib/game/concepts";
 import {
   applyRoundResults,
   createInitialRoomState,
@@ -7,6 +8,7 @@ import {
   maybeAdvanceFromPrompting,
   maybeAdvancePostResults,
   resetGame,
+  setGameTopic,
   startGame,
   submitPrompt,
   upsertParticipant
@@ -51,14 +53,34 @@ export default class JeopromptyServer implements Party.Server {
 
   constructor(readonly room: Party.Room) {}
 
+  private maybeAdvanceState(
+    state: RoomState,
+    options?: { nextTarget?: string; allowRoundCompleteWithoutTarget?: boolean }
+  ) {
+    if (maybeAdvanceFromPrompting(state)) {
+      return true;
+    }
+    if (state.phase !== "round_complete") return false;
+    if (typeof options?.nextTarget === "string" && options.nextTarget.trim()) {
+      return maybeAdvancePostResults(state, options.nextTarget);
+    }
+    if (options?.allowRoundCompleteWithoutTarget) {
+      return maybeAdvancePostResults(state);
+    }
+    return false;
+  }
+
   private async loadState() {
     if (!this.statePromise) {
       this.statePromise = (async () => {
         const existing = await this.room.storage?.get<RoomState>(STORAGE_KEY);
-        return (
+        const state =
           existing ??
-          createInitialRoomState(String(this.room.id).replace(/[^a-z0-9]/gi, "").toUpperCase())
-        );
+          createInitialRoomState(String(this.room.id).replace(/[^a-z0-9]/gi, "").toUpperCase());
+        if (!(state as { gameTopic?: string }).gameTopic) {
+          state.gameTopic = pickRandomTopic();
+        }
+        return state;
       })();
     }
     return this.statePromise;
@@ -134,7 +156,26 @@ export default class JeopromptyServer implements Party.Server {
           this.sendError(connection, "Need at least one player.");
           return;
         }
-        startGame(state);
+        startGame(state, message.payload?.initialTarget);
+        await this.broadcastState();
+        return;
+      }
+
+      case "set_topic": {
+        const actor = state.participants.find((p) => p.connectionId === connection.id);
+        if (!actor || actor.role !== "player") {
+          this.sendError(connection, "Only players can change the topic.");
+          return;
+        }
+        if (state.hostSessionId && actor.sessionId !== state.hostSessionId) {
+          this.sendError(connection, "Only the host can change the topic.");
+          return;
+        }
+        const result = setGameTopic(state, message.payload.topic);
+        if (!result.ok) {
+          this.sendError(connection, result.message ?? "Could not update topic.");
+          return;
+        }
         await this.broadcastState();
         return;
       }
@@ -156,7 +197,14 @@ export default class JeopromptyServer implements Party.Server {
       }
 
       case "request_advance": {
-        const advanced = maybeAdvanceFromPrompting(state) || maybeAdvancePostResults(state);
+        const actor = state.participants.find((p) => p.connectionId === connection.id);
+        const canProvideNextTarget =
+          Boolean(actor && actor.role === "player" && actor.sessionId === state.hostSessionId);
+        const nextTarget = canProvideNextTarget ? message.payload?.nextTarget : undefined;
+        const advanced = this.maybeAdvanceState(state, {
+          nextTarget,
+          allowRoundCompleteWithoutTarget: canProvideNextTarget
+        });
         if (advanced) {
           await this.broadcastState();
         } else {
@@ -202,7 +250,7 @@ export default class JeopromptyServer implements Party.Server {
       }
 
       case "ping": {
-        const advanced = maybeAdvanceFromPrompting(state) || maybeAdvancePostResults(state);
+        const advanced = this.maybeAdvanceState(state);
         if (advanced) {
           await this.broadcastState();
         } else {

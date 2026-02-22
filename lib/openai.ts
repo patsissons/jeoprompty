@@ -57,6 +57,8 @@ export async function generateConciseAnswer(prompt: string) {
     body: JSON.stringify({
       model: MODEL_NAME,
       max_output_tokens: 64,
+      reasoning: { effort: "none" },
+      text: { verbosity: "low" },
       input: [
         {
           role: "system",

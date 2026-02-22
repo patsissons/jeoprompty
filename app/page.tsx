@@ -21,8 +21,9 @@ export default function HomePage() {
                 This is Jeoprompty<span className="text-orange-300">!</span>
               </h1>
               <p className="text-base text-muted-foreground sm:text-lg">
-                Players race to write one perfect question that forces GPT to
-                reveal a secret target. Short answer wins. Sloppy prompt loses.
+                Race to write the perfect question that results in GPT 
+                responding with the target text for the round. Exact answer 
+                wins. Sloppy prompt loses.
               </p>
             </div>
             <div className="grid gap-3 sm:grid-cols-2">

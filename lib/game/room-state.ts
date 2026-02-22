@@ -4,7 +4,7 @@ import {
   MAX_PROMPT_SECONDS,
   TOTAL_ROUNDS
 } from "./constants";
-import { pickConcept } from "./concepts";
+import { pickConcept, pickRandomTopic } from "./concepts";
 import type {
   Participant,
   RoomState,
@@ -21,11 +21,19 @@ function newRoundId() {
   return crypto.randomUUID();
 }
 
+const MAX_TOPIC_LENGTH = 80;
+
+function normalizeGameTopic(topic: string | null | undefined) {
+  const normalized = (topic ?? "").trim().replace(/\s+/g, " ").slice(0, MAX_TOPIC_LENGTH);
+  return normalized || pickRandomTopic();
+}
+
 export function createInitialRoomState(roomCode: string): RoomState {
   const createdAt = now();
   return {
     roomCode,
     phase: "lobby",
+    gameTopic: pickRandomTopic(),
     roundIndex: 0,
     totalRounds: TOTAL_ROUNDS,
     maxPlayers: MAX_PLAYERS,
@@ -95,17 +103,19 @@ export function markDisconnected(state: RoomState, connectionId: string) {
   touch(state);
 }
 
-export function startGame(state: RoomState) {
+export function startGame(state: RoomState, initialTarget?: string) {
+  state.gameTopic = normalizeGameTopic(state.gameTopic);
   state.participants.forEach((p) => {
     if (p.role === "player") p.score = 0;
   });
   state.roundHistory = [];
   state.roundIndex = 1;
-  beginRound(state, []);
+  beginRound(state, [], initialTarget);
 }
 
-export function beginRound(state: RoomState, usedTargets: string[]) {
-  const target = pickConcept(usedTargets);
+export function beginRound(state: RoomState, usedTargets: string[], targetOverride?: string) {
+  const target =
+    targetOverride?.trim().slice(0, 256) || pickConcept(usedTargets, state.gameTopic);
   state.phase = "prompting";
   state.currentTarget = target;
   state.currentRoundId = newRoundId();
@@ -123,6 +133,18 @@ export function beginRound(state: RoomState, usedTargets: string[]) {
   });
   state.resolverSessionId = selectResolver(state);
   touch(state);
+}
+
+export function setGameTopic(
+  state: RoomState,
+  topic: string
+): { ok: boolean; message?: string } {
+  if (state.phase !== "lobby") {
+    return { ok: false, message: "Topic is locked after the game starts." };
+  }
+  state.gameTopic = normalizeGameTopic(topic);
+  touch(state);
+  return { ok: true };
 }
 
 export function submitPrompt(
@@ -213,13 +235,13 @@ export function applyRoundResults(
   return { ok: true };
 }
 
-export function maybeAdvancePostResults(state: RoomState) {
+export function maybeAdvancePostResults(state: RoomState, nextTarget?: string) {
   const expired = Boolean(state.phaseEndsAt && state.phaseEndsAt <= now());
   if (!expired) return false;
   if (state.phase !== "round_complete") return false;
   const usedTargets = state.roundHistory.map((round) => round.target);
   state.roundIndex += 1;
-  beginRound(state, usedTargets);
+  beginRound(state, usedTargets, nextTarget);
   return true;
 }
 

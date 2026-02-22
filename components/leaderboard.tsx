@@ -37,11 +37,13 @@ function statusLabel(status: Participant["roundStatus"]) {
 export function Leaderboard({
   participants,
   highlightSessionId,
-  title = "Leaderboard"
+  title = "Leaderboard",
+  topic
 }: {
   participants: Participant[];
   highlightSessionId?: string;
   title?: string;
+  topic?: string | null;
 }) {
   const players = participants
     .filter((p) => p.role === "player")
@@ -57,6 +59,14 @@ export function Leaderboard({
         <Badge variant="default">{players.length} players</Badge>
       </CardHeader>
       <CardContent className="space-y-2">
+        {topic ? (
+          <div className="rounded-xl border border-cyan-300/20 bg-cyan-400/10 p-3">
+            <div className="text-[10px] uppercase tracking-[0.18em] text-cyan-100/80">
+              Game Topic
+            </div>
+            <div className="mt-1 text-sm font-semibold text-cyan-50">{topic}</div>
+          </div>
+        ) : null}
         {players.length === 0 ? (
           <p className="text-sm text-muted-foreground">No players yet.</p>
         ) : (

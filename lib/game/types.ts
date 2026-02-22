@@ -57,6 +57,7 @@ export type RoundSnapshot = {
 export type RoomState = {
   roomCode: string;
   phase: RoundPhase;
+  gameTopic: string;
   roundIndex: number;
   totalRounds: number;
   maxPlayers: number;
@@ -83,12 +84,22 @@ export type JoinMessage = {
   };
 };
 
-export type StartGameMessage = { type: "start_game" };
+export type StartGameMessage = {
+  type: "start_game";
+  payload?: { initialTarget?: string };
+};
+export type SetTopicMessage = {
+  type: "set_topic";
+  payload: { topic: string };
+};
 export type SubmitPromptMessage = {
   type: "submit_prompt";
   payload: { prompt: string };
 };
-export type RequestAdvanceMessage = { type: "request_advance" };
+export type RequestAdvanceMessage = {
+  type: "request_advance";
+  payload?: { nextTarget?: string };
+};
 export type ResetGameMessage = { type: "reset_game" };
 export type PingMessage = { type: "ping" };
 export type ApplyRoundResultsMessage = {
@@ -102,6 +113,7 @@ export type ApplyRoundResultsMessage = {
 export type ClientMessage =
   | JoinMessage
   | StartGameMessage
+  | SetTopicMessage
   | SubmitPromptMessage
   | RequestAdvanceMessage
   | ResetGameMessage
