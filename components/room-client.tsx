@@ -331,6 +331,12 @@ export function RoomClient({
                 </p>
               </div>
 
+              <RoundResults
+                results={state?.lastRoundResults ?? null}
+                participants={state?.participants ?? []}
+                className="border-cyan-300/20 bg-cyan-300/5"
+              />
+
               {!watchMode ? (
                 <PlayerPanel
                   canStart={(state?.phase ?? "lobby") === "lobby"}
@@ -365,8 +371,6 @@ export function RoomClient({
               ) : null}
             </CardContent>
           </Card>
-
-          <RoundResults results={state?.lastRoundResults ?? null} participants={state?.participants ?? []} />
         </div>
 
         <div className="space-y-4">
