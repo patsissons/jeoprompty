@@ -41,7 +41,6 @@ function isScoredSubmissionArray(value: unknown): value is ScoredSubmission[] {
       typeof row.exactMatch === "boolean" &&
       typeof row.semanticScore === "number" &&
       typeof row.lexicalScore === "number" &&
-      typeof row.hallucinationPenalty === "number" &&
       typeof row.scoreDelta === "number" &&
       typeof row.rejected === "boolean"
     );

@@ -134,7 +134,6 @@ export async function POST(request: Request) {
         exactMatch: false,
         semanticScore: 0,
         lexicalScore: 0,
-        hallucinationPenalty: 0,
         scoreDelta: 0,
         rejected: true,
         rejectionReason: result.rejectionReason
@@ -157,7 +156,6 @@ export async function POST(request: Request) {
       exactMatch: scored.exactMatch,
       semanticScore: scored.semanticScore,
       lexicalScore: scored.lexicalScore,
-      hallucinationPenalty: scored.hallucinationPenalty,
       scoreDelta: scored.scoreDelta,
       rejected: false
     };

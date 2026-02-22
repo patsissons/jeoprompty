@@ -1,5 +1,5 @@
 import { clamp } from "@/lib/utils";
-import { normalizeText, levenshteinDistance, wordCount } from "./text";
+import { normalizeText, levenshteinDistance } from "./text";
 
 export function cosineSimilarity(a: number[], b: number[]) {
   if (a.length !== b.length || a.length === 0) return 0;
@@ -25,13 +25,6 @@ export function lexicalCloseness(answer: string, target: string) {
   return maxLen === 0 ? 0 : clamp(1 - dist / maxLen, 0, 1);
 }
 
-export function hallucinationPenalty(answer: string) {
-  const words = wordCount(answer);
-  if (words <= 10) return 0;
-  const extra = words - 10;
-  return 15 + extra * 2;
-}
-
 export function computeScore(params: {
   answer: string;
   target: string;
@@ -40,24 +33,20 @@ export function computeScore(params: {
 }) {
   const exactMatch = normalizeText(params.answer) === normalizeText(params.target);
   if (exactMatch) {
-    const penalty = hallucinationPenalty(params.answer);
     return {
       exactMatch: true,
       semanticScore: 1,
       lexicalScore: 1,
-      hallucinationPenalty: penalty,
-      scoreDelta: clamp(100 - penalty, 0, 100)
+      scoreDelta: 100
     };
   }
 
   const weighted = params.semantic * 0.7 + params.lexical * 0.3;
   const base = Math.round(weighted * 100);
-  const penalty = hallucinationPenalty(params.answer);
   return {
     exactMatch: false,
     semanticScore: clamp(params.semantic, 0, 1),
     lexicalScore: clamp(params.lexical, 0, 1),
-    hallucinationPenalty: penalty,
-    scoreDelta: clamp(base - penalty, 0, 100)
+    scoreDelta: clamp(base, 0, 100)
   };
 }

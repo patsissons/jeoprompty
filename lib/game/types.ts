@@ -38,7 +38,6 @@ export type ScoredSubmission = {
   exactMatch: boolean;
   semanticScore: number;
   lexicalScore: number;
-  hallucinationPenalty: number;
   scoreDelta: number;
   rejected: boolean;
   rejectionReason?: string;

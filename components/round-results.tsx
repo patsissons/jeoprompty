@@ -60,9 +60,6 @@ export function RoundResults({
                       <Badge variant="default">
                         lexical {(result.lexicalScore * 100).toFixed(0)}%
                       </Badge>
-                      {result.hallucinationPenalty > 0 ? (
-                        <Badge variant="warning">-{result.hallucinationPenalty} long-answer penalty</Badge>
-                      ) : null}
                     </>
                   )}
                 </div>

@@ -19,7 +19,7 @@ Jeoprompty is a realtime party game where players see a secret target concept an
 - 10-round game loop with 60s prompt phase
 - Guest scoreboard / projector-friendly mode
 - Prompt cheating filter (target leakage, meta spelling hints, semantic similarity check)
-- GPT-backed answer generation and scoring (exact + semantic + lexical + long-answer penalty)
+- GPT-backed answer generation and scoring (exact + semantic + lexical)
 
 ## Local Development
 

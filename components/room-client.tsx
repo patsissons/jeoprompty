@@ -406,8 +406,7 @@ export function RoomClient({
               <CardContent className="space-y-2 text-sm text-muted-foreground">
                 <p>1. Direct match to the target gets max points.</p>
                 <p>2. Otherwise semantic similarity + algorithmic closeness are combined.</p>
-                <p>3. Long answers (&gt;10 words) get a hallucination penalty.</p>
-                <p>4. Cheating prompts (target leakage / spelling hints) are rejected.</p>
+                <p>3. Cheating prompts (target leakage / spelling hints) are rejected.</p>
               </CardContent>
             </Card>
           )}
