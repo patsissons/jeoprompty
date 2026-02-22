@@ -244,6 +244,15 @@ export default class JeopromptyServer implements Party.Server {
       }
 
       case "reset_game": {
+        const actor = state.participants.find((p) => p.connectionId === connection.id);
+        if (!actor || actor.role !== "player") {
+          this.sendError(connection, "Only players can reset the game.");
+          return;
+        }
+        if (state.hostSessionId && actor.sessionId !== state.hostSessionId) {
+          this.sendError(connection, "Only the host can reset the game.");
+          return;
+        }
         resetGame(state);
         await this.broadcastState();
         return;

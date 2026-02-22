@@ -115,6 +115,7 @@ export function RoomClient({
     [state?.participants, sessionId]
   );
   const isHost = Boolean(me && state?.hostSessionId === me.sessionId);
+  const canHostResetToLobby = isHost && !watchMode && (state?.phase ?? "lobby") !== "lobby";
   const submittedThisRound =
     Boolean(me?.submittedPrompt) ||
     (state?.phase === "prompting" && Boolean(currentRoundId) && pendingSubmittedRoundId === currentRoundId);
@@ -171,6 +172,16 @@ export function RoomClient({
     room.setTopic(next);
   }
 
+  function handleResetToLobby() {
+    if (!canHostResetToLobby) return;
+    const message =
+      state?.phase === "game_complete"
+        ? "Start a new game and send everyone back to the lobby?"
+        : "End the current game and send everyone back to the lobby?";
+    if (!window.confirm(message)) return;
+    room.resetGame();
+  }
+
   if (missingJoinInfo) {
     return (
       <main className="mx-auto min-h-screen max-w-xl px-4 py-8">
@@ -222,6 +233,12 @@ export function RoomClient({
                     <Wifi className="h-3 w-3" />
                     {room.connectionStatus}
                   </Badge>
+                  {canHostResetToLobby ? (
+                    <Button variant="destructive" size="sm" onClick={handleResetToLobby} className="gap-2">
+                      <RefreshCcw className="h-3.5 w-3.5" />
+                      Reset to Lobby
+                    </Button>
+                  ) : null}
                   <Button variant="outline" size="sm" onClick={handleCopyGuestUrl} className="gap-2">
                     <Copy className="h-3.5 w-3.5" />
                     {copied ? "Copied" : "Guest URL"}
@@ -288,7 +305,8 @@ export function RoomClient({
                 <PlayerPanel
                   canStart={(state?.phase ?? "lobby") === "lobby"}
                   onStart={room.startGame}
-                  onReset={room.resetGame}
+                  onReset={handleResetToLobby}
+                  canReset={isHost}
                   canEditTopic={isHost && (state?.phase ?? "lobby") === "lobby"}
                   topicDraft={topicDraft}
                   setTopicDraft={handleTopicDraftChange}
@@ -379,6 +397,7 @@ function PlayerPanel({
   canStart,
   onStart,
   onReset,
+  canReset,
   canEditTopic,
   topicDraft,
   setTopicDraft,
@@ -394,6 +413,7 @@ function PlayerPanel({
   canStart: boolean;
   onStart: () => void;
   onReset: () => void;
+  canReset: boolean;
   canEditTopic: boolean;
   topicDraft: string;
   setTopicDraft: (value: string) => void;
@@ -441,7 +461,7 @@ function PlayerPanel({
           </div>
         ) : null}
 
-        {statePhase === "game_complete" ? (
+        {statePhase === "game_complete" && canReset ? (
           <div className="flex flex-wrap gap-3">
             <Button onClick={onReset} variant="secondary" className="gap-2">
               <RefreshCcw className="h-4 w-4" />
