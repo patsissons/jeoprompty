@@ -194,7 +194,7 @@ export function RoomClient({
           </CardHeader>
           <CardContent className="space-y-3">
             <Input
-              placeholder="Nickname"
+              placeholder="James Bond"
               value={nickname}
               onChange={(event) => setNickname(event.target.value)}
               maxLength={24}
@@ -476,7 +476,7 @@ function PlayerPanel({
           </label>
           <textarea
             className="min-h-28 w-full rounded-xl border border-white/10 bg-white/5 p-3 text-sm outline-none ring-0 placeholder:text-muted-foreground focus:border-cyan-300/40"
-            placeholder="Example: What famous structure can be seen from space (according to a common myth)?"
+            placeholder="What famous structure can be seen from space (according to a common myth)?"
             value={draftPrompt}
             onChange={(event) => setDraftPrompt(event.target.value.slice(0, 256))}
             onKeyDown={(event) => {

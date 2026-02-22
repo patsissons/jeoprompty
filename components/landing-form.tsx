@@ -60,7 +60,7 @@ export function LandingForm({ initialRoomCode }: { initialRoomCode?: string }) {
             maxLength={24}
             value={nickname}
             onChange={(event) => setNickname(event.target.value)}
-            placeholder="Ada, Neo, QuizBoss..."
+            placeholder="James Bond"
           />
         </div>
         <div className="space-y-2">
@@ -73,14 +73,14 @@ export function LandingForm({ initialRoomCode }: { initialRoomCode?: string }) {
               onClick={generateRoomCode}
               className="text-xs font-medium text-cyan-200 hover:text-cyan-100"
             >
-              Randomize
+              Randomize code
             </button>
           </div>
           <Input
             maxLength={8}
             value={cleanedCode}
             onChange={(event) => setRoomCode(event.target.value)}
-            placeholder="ASDF"
+            placeholder="ABCD"
             className="text-center font-mono tracking-[0.25em]"
           />
         </div>

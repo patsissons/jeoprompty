@@ -14,7 +14,7 @@ export default function HomePage() {
           <div className="absolute inset-0 bg-gradient-to-br from-cyan-400/10 via-transparent to-orange-400/10" />
           <div className="relative space-y-6 text-center">
             <div className="inline-flex items-center rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs tracking-[0.2em] text-cyan-100">
-              PROMPT JEOPARDY PARTY GAME
+              THE PROMPTING PARTY GAME
             </div>
             <div className="space-y-3 text-center">
               <h1 className="text-4xl font-bold tracking-tight sm:text-6xl">
