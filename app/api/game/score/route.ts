@@ -22,29 +22,14 @@ const requestSchema = z.object({
     .max(24)
 });
 
-async function buildPromptSimilarityMap(target: string, prompts: string[]) {
+async function buildSimilarityMap(target: string, values: string[]) {
   try {
-    const embeddings = await embedTexts([target, ...prompts]);
-    if (embeddings.length !== prompts.length + 1) return new Map<string, number>();
-    const [targetEmbedding, ...promptEmbeddings] = embeddings;
+    const embeddings = await embedTexts([target, ...values]);
+    if (embeddings.length !== values.length + 1) return new Map<string, number>();
+    const [targetEmbedding, ...valueEmbeddings] = embeddings;
     const map = new Map<string, number>();
-    prompts.forEach((prompt, index) => {
-      map.set(prompt, cosineSimilarity(targetEmbedding, promptEmbeddings[index]));
-    });
-    return map;
-  } catch {
-    return new Map<string, number>();
-  }
-}
-
-async function buildAnswerSimilarityMap(target: string, answers: string[]) {
-  try {
-    const embeddings = await embedTexts([target, ...answers]);
-    if (embeddings.length !== answers.length + 1) return new Map<string, number>();
-    const [targetEmbedding, ...answerEmbeddings] = embeddings;
-    const map = new Map<string, number>();
-    answers.forEach((answer, index) => {
-      map.set(answer, cosineSimilarity(targetEmbedding, answerEmbeddings[index]));
+    values.forEach((value, index) => {
+      map.set(value, cosineSimilarity(targetEmbedding, valueEmbeddings[index]));
     });
     return map;
   } catch {
@@ -68,7 +53,7 @@ export async function POST(request: Request) {
   }
 
   const { roundId, target, submissions } = parsed;
-  const promptSimilarityMap = await buildPromptSimilarityMap(
+  const promptSimilarityMap = await buildSimilarityMap(
     target,
     submissions.map((s) => s.prompt)
   );
@@ -123,7 +108,7 @@ export async function POST(request: Request) {
   const nonRejectedAnswers = preliminaryResults
     .filter((r) => !r.rejected)
     .map((r) => r.answer);
-  const answerSimilarityMap = await buildAnswerSimilarityMap(target, nonRejectedAnswers);
+  const answerSimilarityMap = await buildSimilarityMap(target, nonRejectedAnswers);
 
   const results: ScoredSubmission[] = preliminaryResults.map((result) => {
     if (result.rejected) {

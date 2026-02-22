@@ -137,8 +137,3 @@ export type ScoreApiResponse = {
   roundId: string;
   results: ScoredSubmission[];
 };
-
-export type AppSettings = {
-  maxPlayers: number;
-  totalRounds: number;
-};

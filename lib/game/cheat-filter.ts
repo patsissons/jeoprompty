@@ -31,9 +31,6 @@ export function checkPromptForCheating({
 }: CheatFilterInput): CheatFilterResult {
   const cleanedPrompt = trimToMax(prompt, MAX_TEXT_LENGTH);
   if (!cleanedPrompt) return { ok: false, reason: "Prompt is required." };
-  if (cleanedPrompt.length > MAX_TEXT_LENGTH) {
-    return { ok: false, reason: "Prompt exceeds 256 characters." };
-  }
   if (!isQuestion(cleanedPrompt)) {
     return { ok: false, reason: "Prompt must be a question." };
   }

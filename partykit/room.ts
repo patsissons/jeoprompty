@@ -92,6 +92,14 @@ export default class JeopromptyServer implements Party.Server {
     await this.saveState(state);
   }
 
+  private getPlayerCount(state: RoomState) {
+    return state.participants.filter((participant) => participant.role === "player").length;
+  }
+
+  private findParticipantByConnection(state: RoomState, connectionId: string) {
+    return state.participants.find((participant) => participant.connectionId === connectionId);
+  }
+
   private sendError(connection: Party.Connection, message: string) {
     connection.send(stringify({ type: "error", payload: { message } }));
   }
@@ -132,7 +140,7 @@ export default class JeopromptyServer implements Party.Server {
           this.sendError(connection, "That nickname is already taken.");
           return;
         }
-        const playerCount = state.participants.filter((p) => p.role === "player").length;
+        const playerCount = this.getPlayerCount(state);
         const alreadyPlayer = state.participants.some(
           (p) => p.sessionId === sessionId && p.role === "player"
         );
@@ -152,7 +160,7 @@ export default class JeopromptyServer implements Party.Server {
       }
 
       case "start_game": {
-        const playerCount = state.participants.filter((p) => p.role === "player").length;
+        const playerCount = this.getPlayerCount(state);
         if (playerCount < 1) {
           this.sendError(connection, "Need at least one player.");
           return;
@@ -163,7 +171,7 @@ export default class JeopromptyServer implements Party.Server {
       }
 
       case "set_topic": {
-        const actor = state.participants.find((p) => p.connectionId === connection.id);
+        const actor = this.findParticipantByConnection(state, connection.id);
         if (!actor || actor.role !== "player") {
           this.sendError(connection, "Only players can change the topic.");
           return;
@@ -182,7 +190,7 @@ export default class JeopromptyServer implements Party.Server {
       }
 
       case "submit_prompt": {
-        const submitter = state.participants.find((p) => p.connectionId === connection.id);
+        const submitter = this.findParticipantByConnection(state, connection.id);
         if (!submitter) {
           this.sendError(connection, "Join the room before submitting.");
           return;
@@ -198,7 +206,7 @@ export default class JeopromptyServer implements Party.Server {
       }
 
       case "request_advance": {
-        const actor = state.participants.find((p) => p.connectionId === connection.id);
+        const actor = this.findParticipantByConnection(state, connection.id);
         const canProvideNextTarget =
           Boolean(actor && actor.role === "player" && actor.sessionId === state.hostSessionId);
         const nextTarget = canProvideNextTarget ? message.payload?.nextTarget : undefined;
@@ -224,11 +232,14 @@ export default class JeopromptyServer implements Party.Server {
           return;
         }
 
-        const submittedPlayers = new Set(state.submissions.map((s) => s.playerId));
+        const submittedPlayers = new Set(state.submissions.map((submission) => submission.playerId));
+        const promptsByPlayerId = new Map(
+          state.submissions.map((submission) => [submission.playerId, submission.prompt] as const)
+        );
         const normalizedResults: ScoredSubmission[] = message.payload.results
           .filter((r) => submittedPlayers.has(r.playerId))
           .map((r) => {
-            const prompt = state.submissions.find((s) => s.playerId === r.playerId)?.prompt ?? r.prompt;
+            const prompt = promptsByPlayerId.get(r.playerId) ?? r.prompt;
             return {
               ...r,
               prompt
@@ -245,7 +256,7 @@ export default class JeopromptyServer implements Party.Server {
       }
 
       case "reset_game": {
-        const actor = state.participants.find((p) => p.connectionId === connection.id);
+        const actor = this.findParticipantByConnection(state, connection.id);
         if (!actor || actor.role !== "player") {
           this.sendError(connection, "Only players can reset the game.");
           return;

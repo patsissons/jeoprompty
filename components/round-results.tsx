@@ -4,10 +4,6 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import type { Participant, ScoredSubmission } from "@/lib/game/types";
 
-function findName(participants: Participant[], playerId: string) {
-  return participants.find((p) => p.sessionId === playerId)?.nickname ?? "Unknown";
-}
-
 export function RoundResults({
   results,
   participants
@@ -16,6 +12,9 @@ export function RoundResults({
   participants: Participant[];
 }) {
   if (!results) return null;
+  const namesByPlayerId = new Map(
+    participants.map((participant) => [participant.sessionId, participant.nickname] as const)
+  );
   return (
     <Card className="border-white/10">
       <CardHeader>
@@ -32,7 +31,9 @@ export function RoundResults({
               <div key={result.playerId} className="rounded-xl border border-white/10 bg-white/5 p-3">
                 <div className="flex items-start justify-between gap-3">
                   <div>
-                    <p className="text-sm font-semibold">{findName(participants, result.playerId)}</p>
+                    <p className="text-sm font-semibold">
+                      {namesByPlayerId.get(result.playerId) ?? "Unknown"}
+                    </p>
                     <p className="mt-1 text-xs text-muted-foreground">“{result.prompt}”</p>
                   </div>
                   <div className="text-right">

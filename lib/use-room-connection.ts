@@ -90,10 +90,6 @@ export function useRoomConnection({
     socket.addEventListener("open", () => {
       setConnectionStatus("open");
       setLastError(null);
-      send({
-        type: "join",
-        payload: { sessionId, nickname, role }
-      });
     });
 
     socket.addEventListener("close", () => setConnectionStatus("closed"));
@@ -324,7 +320,6 @@ export function useRoomConnection({
     setTopic: (topic: string) => send({ type: "set_topic", payload: { topic } }),
     submitPrompt: (prompt: string) => send({ type: "submit_prompt", payload: { prompt } }),
     resetGame: () => send({ type: "reset_game" }),
-    requestAdvance: () => send({ type: "request_advance" }),
     constants: {
       promptSeconds: MAX_PROMPT_SECONDS,
       totalRounds: TOTAL_ROUNDS

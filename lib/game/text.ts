@@ -14,32 +14,31 @@ export function normalizeText(text: string) {
     .trim();
 }
 
-export function wordCount(text: string) {
-  if (!text.trim()) return 0;
-  return text.trim().split(/\s+/).length;
-}
-
 export function isQuestion(text: string) {
   return /\?\s*$/.test(text.trim());
 }
 
 export function levenshteinDistance(a: string, b: string) {
-  const s = a;
-  const t = b;
-  const dp = Array.from({ length: s.length + 1 }, () =>
-    Array<number>(t.length + 1).fill(0)
-  );
-  for (let i = 0; i <= s.length; i += 1) dp[i][0] = i;
-  for (let j = 0; j <= t.length; j += 1) dp[0][j] = j;
-  for (let i = 1; i <= s.length; i += 1) {
-    for (let j = 1; j <= t.length; j += 1) {
-      const cost = s[i - 1] === t[j - 1] ? 0 : 1;
-      dp[i][j] = Math.min(
-        dp[i - 1][j] + 1,
-        dp[i][j - 1] + 1,
-        dp[i - 1][j - 1] + cost
+  if (a === b) return 0;
+  if (!a) return b.length;
+  if (!b) return a.length;
+
+  const [shorter, longer] = a.length <= b.length ? [a, b] : [b, a];
+  let prev = Array.from({ length: shorter.length + 1 }, (_, index) => index);
+  let curr = new Array<number>(shorter.length + 1);
+
+  for (let i = 1; i <= longer.length; i += 1) {
+    curr[0] = i;
+    for (let j = 1; j <= shorter.length; j += 1) {
+      const cost = longer[i - 1] === shorter[j - 1] ? 0 : 1;
+      curr[j] = Math.min(
+        prev[j] + 1,
+        curr[j - 1] + 1,
+        prev[j - 1] + cost
       );
     }
+    [prev, curr] = [curr, prev];
   }
-  return dp[s.length][t.length];
+
+  return prev[shorter.length];
 }

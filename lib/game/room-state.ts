@@ -25,7 +25,7 @@ const MAX_NICKNAME_LENGTH = 24;
 
 function normalizeGameTopic(topic: string | null | undefined) {
   const normalized = (topic ?? "").trim().replace(/\s+/g, " ").slice(0, MAX_TOPIC_LENGTH);
-  return normalized
+  return normalized;
 }
 
 function normalizeNicknameForComparison(nickname: string) {
@@ -66,7 +66,6 @@ export function upsertParticipant(
     existing.nickname = input.nickname.slice(0, MAX_NICKNAME_LENGTH);
     existing.role = input.role;
     existing.connected = true;
-    existing.roundStatus = deriveRoundStatusForParticipant(state, existing);
   } else {
     const participant: Participant = {
       sessionId: input.sessionId,
@@ -128,11 +127,11 @@ export function startGame(state: RoomState, initialTarget?: string) {
   });
   state.roundHistory = [];
   state.roundIndex = 1;
-  beginRound(state, [], initialTarget);
+  beginRound(state, initialTarget);
 }
 
-export function beginRound(state: RoomState, usedTargets: string[], targetOverride?: string) {
-  const target = targetOverride?.trim().slice(0, 256) || ""
+export function beginRound(state: RoomState, targetOverride?: string) {
+  const target = targetOverride?.trim().slice(0, 256) || "";
   state.phase = "prompting";
   state.currentTarget = target;
   state.currentRoundId = newRoundId();
@@ -227,8 +226,11 @@ export function applyRoundResults(
     return { ok: false, message: "Round ID mismatch." };
   }
   state.lastRoundResults = results;
+  const playersBySessionId = new Map(
+    state.participants.map((participant) => [participant.sessionId, participant] as const)
+  );
   for (const result of results) {
-    const player = state.participants.find((p) => p.sessionId === result.playerId);
+    const player = playersBySessionId.get(result.playerId);
     if (player?.role === "player") {
       player.score += result.scoreDelta;
       player.roundStatus = "round_complete";
@@ -256,9 +258,8 @@ export function maybeAdvancePostResults(state: RoomState, nextTarget?: string) {
   const expired = Boolean(state.phaseEndsAt && state.phaseEndsAt <= now());
   if (!expired) return false;
   if (state.phase !== "round_complete") return false;
-  const usedTargets = state.roundHistory.map((round) => round.target);
   state.roundIndex += 1;
-  beginRound(state, usedTargets, nextTarget);
+  beginRound(state, nextTarget);
   return true;
 }
 
@@ -298,12 +299,14 @@ export function deriveRoundStatusForParticipant(
 }
 
 export function selectResolver(state: RoomState) {
-  return (
-    state.participants
-      .filter((p) => p.connected)
-      .sort((a, b) => a.joinedAt - b.joinedAt)
-      .find((p) => p.role === "player")?.sessionId ?? null
-  );
+  let resolver: Participant | null = null;
+  for (const participant of state.participants) {
+    if (!participant.connected || participant.role !== "player") continue;
+    if (!resolver || participant.joinedAt < resolver.joinedAt) {
+      resolver = participant;
+    }
+  }
+  return resolver?.sessionId ?? null;
 }
 
 export function getActivePlayers(state: RoomState) {

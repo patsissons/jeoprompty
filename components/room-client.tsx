@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Copy, Loader2, RefreshCcw, Rocket, Timer, Users, Wifi } from "lucide-react";
+import { Copy, RefreshCcw, Rocket, Timer, Users, Wifi } from "lucide-react";
 
 import { Leaderboard } from "@/components/leaderboard";
 import { RoundResults } from "@/components/round-results";
@@ -113,6 +113,8 @@ export function RoomClient({
 
   const state = room.state;
   const currentRoundId = state?.currentRoundId ?? null;
+  const participants = state?.participants ?? [];
+  const players = participants.filter((participant) => participant.role === "player");
 
   const me = useMemo(
     () => state?.participants.find((participant) => participant.sessionId === sessionId) ?? null,
@@ -132,11 +134,12 @@ export function RoomClient({
     return (msRemaining / (MAX_PROMPT_SECONDS * 1000)) * 100;
   }, [room.currentRoundMsRemaining, state?.phase]);
 
-  const connectedPlayers = state?.participants.filter((p) => p.role === "player" && p.connected).length ?? 0;
+  const connectedPlayers = players.filter((player) => player.connected).length;
+  const playerCount = players.length;
   const submittedCount = state?.submissions.length ?? 0;
-  const guestJoinUrl = `/room/${roomCode.toLowerCase()}?watch=1&nick=${encodeURIComponent(
-    nickname || "Guest"
-  )}`;
+  const resolverName =
+    participants.find((participant) => participant.sessionId === state?.resolverSessionId)?.nickname ??
+    null;
 
   const missingJoinInfo = !nickname.trim() || !sessionId;
 
@@ -333,17 +336,14 @@ export function RoomClient({
                   myStatus={statusTextForPlayer(me)}
                   submitted={submittedThisRound}
                   submittedCount={submittedCount}
-                  playerCount={state?.participants.filter((p) => p.role === "player").length ?? 0}
+                  playerCount={playerCount}
                 />
               ) : (
                 <GuestBoard
                   statePhase={state?.phase ?? "lobby"}
-                  playerCount={state?.participants.filter((p) => p.role === "player").length ?? 0}
+                  playerCount={playerCount}
                   submittedCount={submittedCount}
-                  resolverName={
-                    state?.participants.find((p) => p.sessionId === state.resolverSessionId)?.nickname ??
-                    null
-                  }
+                  resolverName={resolverName}
                 />
               )}
 
@@ -376,9 +376,7 @@ export function RoomClient({
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-2">
-                {(state?.participants ?? [])
-                  .filter((p) => p.role === "player")
-                  .map((player) => (
+                {players.map((player) => (
                     <div
                       key={player.sessionId}
                       className="flex items-center justify-between rounded-xl border border-white/10 bg-white/5 px-3 py-2"
