@@ -87,12 +87,36 @@ export async function generateResponseText({
   return output;
 }
 
+
 export async function generateConciseAnswer(prompt: string, words: number) {
-  const answer = await generateResponseText({
-    systemPrompt:
-      `Answer with only the final answer text. Keep it concise and specific. Must be exactly ${words} words.`,
-    userPrompt: prompt,
-  });
+  const promptWords = prompt
+    .split(" ")
+    .map(word => word.replace(/[^a-zA-Z0-9]/g, "").trim())
+    .map(word => word.toLowerCase())
+    .filter(word => word.length > 2)
+
+  const systemPrompt = [
+    "Answer must be concise and specific.",
+    `Answer must be exactly ${words} words in length.`,
+    `Answer cannot contain any of the following words: ${promptWords.join(", ")}.`,
+  ].join(" ")
+  const promptWordSet = new Set(promptWords);
+  let answer = "";
+  for (let i = 0; i < 10; i++) {
+    answer = await generateResponseText({
+      systemPrompt,
+      userPrompt: prompt,
+    });
+    const answerWords = answer
+      .split(" ")
+      .map(word => word.replace(/[^a-zA-Z0-9]/g, "").trim())
+      .map(word => word.toLowerCase())
+      .filter(Boolean);
+
+    if (!answerWords.some(word => promptWordSet.has(word))) {
+      break
+    }
+  }
   return answer;
 }
 

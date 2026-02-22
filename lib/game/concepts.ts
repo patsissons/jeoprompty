@@ -71,10 +71,10 @@ export async function generateCreativeConcept({
         "Output only the concept text. No quotes. No numbering. No explanation."
       ].join(" "),
       [
-        `Topic: ${topic?.trim() || "expect the unexpected"}`,
+        `Topic: ${topic?.trim() || defaultFallbackTopic}`,
         `Avoid these previous targets: ${used.slice(-20).join(" | ") || "none"}`,
         `Be original and varied (nonce: ${randomNonce()}).`,
-        "Aim for 3-5 words. Avoid punctuation.",
+        "Aim for 5-10 words. Avoid punctuation.",
       ].join("\n"),
     );
 
