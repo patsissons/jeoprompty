@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Copy, RefreshCcw, Rocket, Timer, Users, Wifi } from "lucide-react";
+import { Copy, Loader2, RefreshCcw, Rocket, Timer, Users, Wifi } from "lucide-react";
 
 import { Leaderboard } from "@/components/leaderboard";
 import { RoundResults } from "@/components/round-results";
@@ -84,6 +84,10 @@ export function RoomClient({
   const [topicDraft, setTopicDraft] = useState("");
   const [copied, setCopied] = useState(false);
   const [pendingSubmittedRoundId, setPendingSubmittedRoundId] = useState<string | null>(null);
+  const [previewWordCount, setPreviewWordCount] = useState(4);
+  const [previewAnswer, setPreviewAnswer] = useState<string | null>(null);
+  const [previewError, setPreviewError] = useState<string | null>(null);
+  const [previewLoading, setPreviewLoading] = useState(false);
 
   useEffect(() => {
     setSessionId(getOrCreateTabSessionId());
@@ -150,6 +154,14 @@ export function RoomClient({
   }, [currentRoundId]);
 
   useEffect(() => {
+    if ((state?.phase ?? "lobby") !== "lobby") {
+      setPreviewAnswer(null);
+      setPreviewError(null);
+      setPreviewLoading(false);
+    }
+  }, [state?.phase]);
+
+  useEffect(() => {
     if (me?.submittedPrompt) {
       setPendingSubmittedRoundId(currentRoundId);
     }
@@ -194,6 +206,37 @@ export function RoomClient({
     if (state?.phase !== "prompting" || submittedThisRound) return;
     setPendingSubmittedRoundId(currentRoundId);
     room.submitPrompt(draftPrompt.trim().slice(0, 256));
+  }
+
+  async function handlePreviewPrompt() {
+    if (!draftPrompt.trim()) return;
+    if ((state?.phase ?? "lobby") !== "lobby") return;
+
+    setPreviewLoading(true);
+    setPreviewError(null);
+
+    try {
+      const response = await fetch("/api/game/preview", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          prompt: draftPrompt.trim().slice(0, 256),
+          words: previewWordCount
+        })
+      });
+
+      const payload = (await response.json()) as { answer?: string; error?: string };
+      if (!response.ok) {
+        throw new Error(payload.error || `API error ${response.status}`);
+      }
+
+      setPreviewAnswer(payload.answer ?? "");
+    } catch (error) {
+      setPreviewAnswer(null);
+      setPreviewError(error instanceof Error ? error.message : "Preview failed");
+    } finally {
+      setPreviewLoading(false);
+    }
   }
 
   function handleTopicDraftChange(value: string) {
@@ -347,6 +390,7 @@ export function RoomClient({
                   topicDraft={topicDraft}
                   setTopicDraft={handleTopicDraftChange}
                   onSubmit={handleSubmitPrompt}
+                  onPreview={handlePreviewPrompt}
                   draftPrompt={draftPrompt}
                   setDraftPrompt={setDraftPrompt}
                   statePhase={state?.phase ?? "lobby"}
@@ -354,6 +398,11 @@ export function RoomClient({
                   submitted={submittedThisRound}
                   submittedCount={submittedCount}
                   playerCount={playerCount}
+                  previewWordCount={previewWordCount}
+                  setPreviewWordCount={setPreviewWordCount}
+                  previewAnswer={previewAnswer}
+                  previewError={previewError}
+                  previewLoading={previewLoading}
                 />
               ) : (
                 <GuestBoard
@@ -438,13 +487,19 @@ function PlayerPanel({
   topicDraft,
   setTopicDraft,
   onSubmit,
+  onPreview,
   draftPrompt,
   setDraftPrompt,
   statePhase,
   myStatus,
   submitted,
   submittedCount,
-  playerCount
+  playerCount,
+  previewWordCount,
+  setPreviewWordCount,
+  previewAnswer,
+  previewError,
+  previewLoading
 }: {
   canStart: boolean;
   onStart: () => void;
@@ -454,6 +509,7 @@ function PlayerPanel({
   topicDraft: string;
   setTopicDraft: (value: string) => void;
   onSubmit: () => void;
+  onPreview: () => void;
   draftPrompt: string;
   setDraftPrompt: (value: string) => void;
   statePhase: string;
@@ -461,8 +517,14 @@ function PlayerPanel({
   submitted: boolean;
   submittedCount: number;
   playerCount: number;
+  previewWordCount: number;
+  setPreviewWordCount: (value: number) => void;
+  previewAnswer: string | null;
+  previewError: string | null;
+  previewLoading: boolean;
 }) {
-  const canEditPrompt = statePhase === "prompting" && !submitted;
+  const inLobby = statePhase === "lobby";
+  const canEditPrompt = inLobby || (statePhase === "prompting" && !submitted);
 
   return (
     <Card className="border-white/10">
@@ -506,9 +568,44 @@ function PlayerPanel({
           </div>
         ) : null}
 
+        {inLobby ? (
+          <div className="rounded-xl border border-cyan-300/20 bg-cyan-300/5 p-3">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <div className="text-xs uppercase tracking-[0.2em] text-cyan-100/80">Prompt Lab</div>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Test prompts before the game starts to preview likely answers.
+                </p>
+              </div>
+              <Badge variant="secondary">{previewWordCount} words</Badge>
+            </div>
+            <div className="mt-3 rounded-lg border border-white/10 bg-white/5 p-3">
+              {previewLoading ? (
+                <div className="flex items-center gap-2 text-sm text-cyan-100">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Generating preview...
+                </div>
+              ) : previewError ? (
+                <p className="text-sm text-rose-200">{previewError}</p>
+              ) : previewAnswer ? (
+                <>
+                  <div className="text-[10px] uppercase tracking-[0.18em] text-cyan-100/70">
+                    Preview answer
+                  </div>
+                  <div className="mt-1 text-base font-semibold text-cyan-50">{previewAnswer}</div>
+                </>
+              ) : (
+                <p className="text-sm text-muted-foreground">
+                  Enter a question prompt below, then click Test Prompt.
+                </p>
+              )}
+            </div>
+          </div>
+        ) : null}
+
         <div className={cn("space-y-2", !canEditPrompt && "opacity-80")}>
           <label className="text-xs uppercase tracking-[0.2em] text-muted-foreground">
-            Your question prompt (max 256 chars)
+            {inLobby ? "Practice question prompt (max 256 chars)" : "Your question prompt (max 256 chars)"}
           </label>
           <textarea
             className="min-h-28 w-full rounded-xl border border-white/10 bg-white/5 p-3 text-sm outline-none ring-0 placeholder:text-muted-foreground focus:border-cyan-300/40"
@@ -518,6 +615,10 @@ function PlayerPanel({
             onKeyDown={(event) => {
               if (event.key !== "Enter" || event.shiftKey || event.nativeEvent.isComposing) return;
               event.preventDefault();
+              if (inLobby && draftPrompt.trim()) {
+                onPreview();
+                return;
+              }
               if (canEditPrompt && draftPrompt.trim()) {
                 onSubmit();
               }
@@ -525,15 +626,55 @@ function PlayerPanel({
             disabled={!canEditPrompt}
             maxLength={256}
           />
-          <div className="flex items-center justify-between text-xs text-muted-foreground">
-            <span>
-              {submittedCount}/{playerCount} submitted
-            </span>
-            <span>{draftPrompt.length}/256</span>
-          </div>
-          <Button onClick={onSubmit} disabled={!canEditPrompt || !draftPrompt.trim()}>
-            {submitted ? "Submitted" : "Submit Prompt"}
-          </Button>
+          {inLobby ? (
+            <>
+              <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end">
+                <div className="space-y-2">
+                  <label className="text-xs uppercase tracking-[0.2em] text-muted-foreground">
+                    Preview answer length (words)
+                  </label>
+                  <Input
+                    type="number"
+                    min={1}
+                    max={8}
+                    step={1}
+                    value={previewWordCount}
+                    onChange={(event) => {
+                      const parsed = Number.parseInt(event.target.value, 10);
+                      if (Number.isNaN(parsed)) {
+                        setPreviewWordCount(4);
+                        return;
+                      }
+                      setPreviewWordCount(Math.max(1, Math.min(8, parsed)));
+                    }}
+                  />
+                </div>
+                <Button
+                  onClick={onPreview}
+                  disabled={!draftPrompt.trim() || previewLoading}
+                  className="gap-2"
+                >
+                  {previewLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+                  Test Prompt
+                </Button>
+              </div>
+              <div className="flex items-center justify-end text-xs text-muted-foreground">
+                <span>{draftPrompt.length}/256</span>
+              </div>
+            </>
+          ) : (
+            <>
+              <div className="flex items-center justify-between text-xs text-muted-foreground">
+                <span>
+                  {submittedCount}/{playerCount} submitted
+                </span>
+                <span>{draftPrompt.length}/256</span>
+              </div>
+              <Button onClick={onSubmit} disabled={!canEditPrompt || !draftPrompt.trim()}>
+                {submitted ? "Submitted" : "Submit Prompt"}
+              </Button>
+            </>
+          )}
         </div>
 
         <div className="rounded-xl border border-white/10 bg-white/5 p-3 text-xs text-muted-foreground">
