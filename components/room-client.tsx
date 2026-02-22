@@ -78,6 +78,7 @@ export function RoomClient({
   const [nickname, setNickname] = useState(initialNickname?.slice(0, 24) ?? "");
   const [draftPrompt, setDraftPrompt] = useState("");
   const [copied, setCopied] = useState(false);
+  const [nowMs, setNowMs] = useState(() => Date.now());
 
   useEffect(() => {
     setSessionId(getOrCreateTabSessionId());
@@ -106,6 +107,14 @@ export function RoomClient({
   });
 
   const state = room.state;
+
+  useEffect(() => {
+    if (!state?.phaseEndsAt) return;
+    setNowMs(Date.now());
+    const interval = window.setInterval(() => setNowMs(Date.now()), 250);
+    return () => window.clearInterval(interval);
+  }, [state?.phase, state?.phaseEndsAt]);
+
   const me = useMemo(
     () => state?.participants.find((participant) => participant.sessionId === sessionId) ?? null,
     [state?.participants, sessionId]
@@ -113,14 +122,14 @@ export function RoomClient({
 
   const secondsRemaining = useMemo(() => {
     if (!state?.phaseEndsAt) return 0;
-    return Math.max(0, Math.ceil((state.phaseEndsAt - Date.now()) / 1000));
-  }, [state?.phaseEndsAt, state?.updatedAt]);
+    return Math.max(0, Math.ceil((state.phaseEndsAt - nowMs) / 1000));
+  }, [nowMs, state?.phaseEndsAt]);
 
   const progressPct = useMemo(() => {
     if (!state?.phaseEndsAt || state.phase !== "prompting") return 0;
-    const msRemaining = Math.max(0, state.phaseEndsAt - Date.now());
+    const msRemaining = Math.max(0, state.phaseEndsAt - nowMs);
     return (msRemaining / (MAX_PROMPT_SECONDS * 1000)) * 100;
-  }, [state?.phase, state?.phaseEndsAt, state?.updatedAt]);
+  }, [nowMs, state?.phase, state?.phaseEndsAt]);
 
   const connectedPlayers = state?.participants.filter((p) => p.role === "player" && p.connected).length ?? 0;
   const submittedCount = state?.submissions.length ?? 0;

@@ -28,6 +28,7 @@ export function useRoomConnection({
   const [lastError, setLastError] = useState<string | null>(null);
   const socketRef = useRef<PartySocket | null>(null);
   const resolvingRoundRef = useRef<string | null>(null);
+  const [nowMs, setNowMs] = useState(() => Date.now());
 
   const host = process.env.NEXT_PUBLIC_PARTYKIT_HOST;
   const canConnect = Boolean(host) && enabled;
@@ -167,10 +168,17 @@ export function useRoomConnection({
     }
   }, [state?.currentRoundId, state?.phase]);
 
+  useEffect(() => {
+    if (!state?.phaseEndsAt) return;
+    setNowMs(Date.now());
+    const interval = window.setInterval(() => setNowMs(Date.now()), 250);
+    return () => window.clearInterval(interval);
+  }, [state?.phase, state?.phaseEndsAt]);
+
   const currentRoundSecondsRemaining = useMemo(() => {
     if (!state?.phaseEndsAt) return 0;
-    return Math.max(0, Math.ceil((state.phaseEndsAt - Date.now()) / 1000));
-  }, [state?.phaseEndsAt, state?.updatedAt]);
+    return Math.max(0, Math.ceil((state.phaseEndsAt - nowMs) / 1000));
+  }, [nowMs, state?.phaseEndsAt]);
 
   return {
     state,
