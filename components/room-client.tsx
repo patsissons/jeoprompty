@@ -820,7 +820,8 @@ function PlayerPanel({
           />
           {inLobby ? (
             <>
-              <div className="flex justify-end">
+              <div className="flex items-center justify-end gap-3">
+                <span className="text-xs text-muted-foreground">{draftPrompt.length}/256</span>
                 <Button
                   onClick={onPreview}
                   disabled={!draftPrompt.trim() || labRunLoading || !labTarget}
@@ -830,21 +831,15 @@ function PlayerPanel({
                   Test Prompt
                 </Button>
               </div>
-              <div className="flex items-center justify-end text-xs text-muted-foreground">
-                <span>{draftPrompt.length}/256</span>
-              </div>
             </>
           ) : (
             <>
-              <div className="flex items-center justify-between text-xs text-muted-foreground">
-                <span>
-                  {submittedCount}/{playerCount} submitted
-                </span>
-                <span>{draftPrompt.length}/256</span>
+              <div className="flex items-center justify-end gap-3">
+                <span className="text-xs text-muted-foreground">{draftPrompt.length}/256</span>
+                <Button onClick={onSubmit} disabled={!canEditPrompt || !draftPrompt.trim()}>
+                  {submitted ? "Submitted" : "Submit Prompt"}
+                </Button>
               </div>
-              <Button onClick={onSubmit} disabled={!canEditPrompt || !draftPrompt.trim()}>
-                {submitted ? "Submitted" : "Submit Prompt"}
-              </Button>
             </>
           )}
         </div>
