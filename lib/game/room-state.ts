@@ -32,6 +32,59 @@ function normalizeNicknameForComparison(nickname: string) {
   return nickname.trim().slice(0, MAX_NICKNAME_LENGTH).toLocaleLowerCase();
 }
 
+function rebindParticipantSessionId(state: RoomState, fromSessionId: string, toSessionId: string) {
+  if (fromSessionId === toSessionId) return;
+
+  if (state.hostSessionId === fromSessionId) {
+    state.hostSessionId = toSessionId;
+  }
+  if (state.resolverSessionId === fromSessionId) {
+    state.resolverSessionId = toSessionId;
+  }
+
+  state.submissions.forEach((submission) => {
+    if (submission.playerId === fromSessionId) {
+      submission.playerId = toSessionId;
+    }
+  });
+
+  state.lastRoundResults?.forEach((result) => {
+    if (result.playerId === fromSessionId) {
+      result.playerId = toSessionId;
+    }
+  });
+
+  state.roundHistory.forEach((round) => {
+    round.submissions.forEach((submission) => {
+      if (submission.playerId === fromSessionId) {
+        submission.playerId = toSessionId;
+      }
+    });
+    round.results?.forEach((result) => {
+      if (result.playerId === fromSessionId) {
+        result.playerId = toSessionId;
+      }
+    });
+  });
+}
+
+export function findOfflineParticipantByNickname(
+  state: RoomState,
+  nickname: string,
+  options?: { excludeSessionId?: string }
+) {
+  const target = normalizeNicknameForComparison(nickname);
+  if (!target) return null;
+  return (
+    state.participants.find(
+      (participant) =>
+        participant.sessionId !== options?.excludeSessionId &&
+        !participant.connected &&
+        normalizeNicknameForComparison(participant.nickname) === target
+    ) ?? null
+  );
+}
+
 export function createInitialRoomState(roomCode: string): RoomState {
   const createdAt = now();
   return {
@@ -60,8 +113,12 @@ export function upsertParticipant(
   state: RoomState,
   input: { sessionId: string; connectionId: string; nickname: string; role: Role }
 ) {
-  const existing = state.participants.find((p) => p.sessionId === input.sessionId);
+  const existing =
+    state.participants.find((p) => p.sessionId === input.sessionId) ??
+    findOfflineParticipantByNickname(state, input.nickname, { excludeSessionId: input.sessionId });
   if (existing) {
+    rebindParticipantSessionId(state, existing.sessionId, input.sessionId);
+    existing.sessionId = input.sessionId;
     existing.connectionId = input.connectionId;
     existing.nickname = input.nickname.slice(0, MAX_NICKNAME_LENGTH);
     existing.role = input.role;
@@ -83,9 +140,23 @@ export function upsertParticipant(
       state.hostSessionId = participant.sessionId;
     }
   }
-  if (!state.hostSessionId) {
-    state.hostSessionId =
-      state.participants.find((p) => p.role === "player")?.sessionId ?? null;
+  const currentHost =
+    state.hostSessionId
+      ? state.participants.find((participant) => participant.sessionId === state.hostSessionId)
+      : null;
+  const hostIsActivePlayer = Boolean(
+    currentHost && currentHost.role === "player" && currentHost.connected
+  );
+  if (!hostIsActivePlayer) {
+    const activePlayers = getActivePlayers(state);
+    if (activePlayers.length === 1) {
+      state.hostSessionId = activePlayers[0].sessionId;
+    } else if (!state.hostSessionId) {
+      state.hostSessionId =
+        activePlayers[0]?.sessionId ??
+        state.participants.find((p) => p.role === "player")?.sessionId ??
+        null;
+    }
   }
   state.resolverSessionId = selectResolver(state);
   touch(state);
@@ -94,13 +165,14 @@ export function upsertParticipant(
 export function isNicknameTaken(
   state: RoomState,
   nickname: string,
-  options?: { excludeSessionId?: string }
+  options?: { excludeSessionId?: string; connectedOnly?: boolean }
 ) {
   const target = normalizeNicknameForComparison(nickname);
   if (!target) return false;
   return state.participants.some(
     (participant) =>
       participant.sessionId !== options?.excludeSessionId &&
+      (!options?.connectedOnly || participant.connected) &&
       normalizeNicknameForComparison(participant.nickname) === target
   );
 }

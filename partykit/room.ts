@@ -3,6 +3,7 @@ import type * as Party from "partykit/server";
 import {
   applyRoundResults,
   createInitialRoomState,
+  findOfflineParticipantByNickname,
   isNicknameTaken,
   markDisconnected,
   maybeAdvanceFromPrompting,
@@ -136,15 +137,19 @@ export default class JeopromptyServer implements Party.Server {
           this.sendError(connection, "Nickname and session are required.");
           return;
         }
-        if (isNicknameTaken(state, trimmedNickname, { excludeSessionId: sessionId })) {
+        if (isNicknameTaken(state, trimmedNickname, { excludeSessionId: sessionId, connectedOnly: true })) {
           this.sendError(connection, "That nickname is already taken.");
           return;
         }
+        const reconnectingParticipant = findOfflineParticipantByNickname(state, trimmedNickname, {
+          excludeSessionId: sessionId
+        });
         const playerCount = this.getPlayerCount(state);
         const alreadyPlayer = state.participants.some(
           (p) => p.sessionId === sessionId && p.role === "player"
         );
-        if (role === "player" && !alreadyPlayer && playerCount >= state.maxPlayers) {
+        const reconnectingPlayer = reconnectingParticipant?.role === "player";
+        if (role === "player" && !alreadyPlayer && !reconnectingPlayer && playerCount >= state.maxPlayers) {
           this.sendError(connection, "This room is full.");
           return;
         }
