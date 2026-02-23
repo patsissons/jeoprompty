@@ -18,6 +18,7 @@ import {
   SEMANTIC_SCORE_WEIGHT
 } from "@/lib/game/scoring";
 import type { Participant, ScoreApiResponse, ScoredSubmission } from "@/lib/game/types";
+import { setNicknameCookie } from "@/lib/nickname-cookie";
 import { setRoomCodeCookie } from "@/lib/room-code-cookie";
 import { useRoomConnection } from "@/lib/use-room-connection";
 import { cn, formatSeconds } from "@/lib/utils";
@@ -106,7 +107,9 @@ export function RoomClient({
   }, [initialNickname]);
 
   useEffect(() => {
-    if (nickname.trim()) localStorage.setItem("jeoprompty.nickname", nickname.trim());
+    if (!nickname.trim()) return;
+    localStorage.setItem("jeoprompty.nickname", nickname.trim());
+    setNicknameCookie(nickname);
   }, [nickname]);
 
   useEffect(() => {

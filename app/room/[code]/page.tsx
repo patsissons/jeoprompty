@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
+import { cookies } from "next/headers";
 
 import { RoomClient } from "@/components/room-client";
+import { NICKNAME_COOKIE, normalizeNicknameCookie } from "@/lib/nickname-cookie";
 
 type Props = {
   params: { code: string };
@@ -21,9 +23,12 @@ export function generateMetadata({ params }: Props): Metadata {
 }
 
 export default function RoomPage({ params, searchParams }: Props) {
+  const cookieStore = cookies();
   const watchMode = searchParams?.watch === "1";
   const nickParam = searchParams?.nick;
-  const initialNickname = Array.isArray(nickParam) ? nickParam[0] : nickParam;
+  const nicknameFromQuery = normalizeNicknameCookie(Array.isArray(nickParam) ? nickParam[0] : nickParam);
+  const lastNickname = normalizeNicknameCookie(cookieStore.get(NICKNAME_COOKIE)?.value);
+  const initialNickname = nicknameFromQuery || lastNickname;
 
   return (
     <RoomClient

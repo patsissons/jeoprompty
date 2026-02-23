@@ -1,12 +1,13 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Play, Tv2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { setNicknameCookie } from "@/lib/nickname-cookie";
 import { normalizeRoomCodeCookie, setRoomCodeCookie } from "@/lib/room-code-cookie";
 import { safeUpperRoomCode } from "@/lib/utils";
 
@@ -32,6 +33,11 @@ export function LandingForm({
   const [roomCode, setRoomCode] = useState(
     () => normalizeRoomCodeCookie(initialRoomCode) || generateRandomRoomCode()
   );
+
+  useEffect(() => {
+    if (!nickname.trim()) return;
+    setNicknameCookie(nickname);
+  }, [nickname]);
 
   const cleanedCode = useMemo(() => safeUpperRoomCode(roomCode), [roomCode]);
   const canJoin = nickname.trim().length > 0 && cleanedCode.length >= 4;
