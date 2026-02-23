@@ -443,16 +443,6 @@ export function RoomClient({
                 </div>
               </div>
 
-              {state?.phase === "prompting" ? (
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between text-xs text-muted-foreground">
-                    <span>Prompt round countdown</span>
-                    <span>{secondsRemaining}s</span>
-                  </div>
-                  <Progress value={progressPct} />
-                </div>
-              ) : null}
-
               <div className="rounded-2xl border border-white/10 bg-gradient-to-br from-cyan-300/10 via-white/0 to-orange-300/10 p-4">
                 <div className="text-xs uppercase tracking-[0.2em] text-muted-foreground">
                   Current Target
@@ -490,6 +480,8 @@ export function RoomClient({
                   submitted={submittedThisRound}
                   submittedCount={submittedCount}
                   playerCount={playerCount}
+                  secondsRemaining={secondsRemaining}
+                  progressPct={progressPct}
                   labTarget={labTarget}
                   labTargetError={labTargetError}
                   labTargetLoading={labTargetLoading}
@@ -590,6 +582,8 @@ function PlayerPanel({
   submitted,
   submittedCount,
   playerCount,
+  secondsRemaining,
+  progressPct,
   labTarget,
   labTargetError,
   labTargetLoading,
@@ -615,6 +609,8 @@ function PlayerPanel({
   submitted: boolean;
   submittedCount: number;
   playerCount: number;
+  secondsRemaining: number;
+  progressPct: number;
   labTarget: string | null;
   labTargetError: string | null;
   labTargetLoading: boolean;
@@ -642,6 +638,16 @@ function PlayerPanel({
         <CardDescription>{myStatus}</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
+        {statePhase === "prompting" ? (
+          <div className="space-y-2">
+            <div className="flex items-center justify-between text-xs text-muted-foreground">
+              <span>Prompt round countdown</span>
+              <span>{secondsRemaining}s</span>
+            </div>
+            <Progress value={progressPct} />
+          </div>
+        ) : null}
+
         {statePhase === "lobby" && canEditTopic ? (
           <div className="space-y-2">
             <label className="text-xs uppercase tracking-[0.2em] text-muted-foreground">
