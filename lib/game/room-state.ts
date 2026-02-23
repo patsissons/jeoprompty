@@ -205,6 +205,33 @@ export function markDisconnected(state: RoomState, connectionId: string) {
   touch(state);
 }
 
+export function removeParticipant(state: RoomState, sessionId: string) {
+  const existing = state.participants.find((p) => p.sessionId === sessionId);
+  if (!existing) return false;
+
+  state.participants = state.participants.filter((p) => p.sessionId !== sessionId);
+  state.submissions = state.submissions.filter((submission) => submission.playerId !== sessionId);
+
+  if (state.hostSessionId === sessionId) {
+    state.hostSessionId =
+      state.participants.find((p) => p.role === "player" && p.connected)?.sessionId ??
+      state.participants.find((p) => p.role === "player")?.sessionId ??
+      null;
+  }
+
+  if (state.resolverSessionId === sessionId) {
+    state.resolverSessionId = selectResolver(state);
+  }
+
+  touch(state);
+  return true;
+}
+
+export function clearRoomParticipants(state: RoomState) {
+  const next = createInitialRoomState(state.roomCode);
+  Object.assign(state, next);
+}
+
 export function startGame(state: RoomState, initialTarget?: string) {
   state.gameTopic = normalizeGameTopic(state.gameTopic);
   state.participants.forEach((p) => {

@@ -1,7 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import Link from "next/link";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Copy, Loader2, RefreshCcw, Rocket, Timer, Users, Wifi } from "lucide-react";
 
@@ -98,6 +97,8 @@ export function RoomClient({
   const [labRunLoading, setLabRunLoading] = useState(false);
   const [labUsedTargets, setLabUsedTargets] = useState<string[]>([]);
   const [startGameLoading, setStartGameLoading] = useState(false);
+  const [exitLoading, setExitLoading] = useState(false);
+  const hasJoinedRoomRef = useRef(false);
 
   useEffect(() => {
     setSessionId(getOrCreateTabSessionId());
@@ -158,6 +159,17 @@ export function RoomClient({
     null;
 
   const missingJoinInfo = !nickname.trim() || !sessionId;
+
+  useEffect(() => {
+    if (me) {
+      hasJoinedRoomRef.current = true;
+      return;
+    }
+    if (!hasJoinedRoomRef.current) return;
+    if ((state?.phase ?? "lobby") !== "lobby") return;
+    if (exitLoading) return;
+    router.replace("/");
+  }, [exitLoading, me, router, state?.phase]);
 
   useEffect(() => {
     // Reset the local draft when a new round starts (or game resets).
@@ -356,6 +368,22 @@ export function RoomClient({
     room.startGame();
   }
 
+  function handleExitRoom() {
+    if (exitLoading) return;
+    setExitLoading(true);
+
+    const inLobby = (state?.phase ?? "lobby") === "lobby";
+    if (inLobby && me) {
+      room.leaveRoom({ clearRoom: isHost && !watchMode });
+      window.setTimeout(() => {
+        router.push("/");
+      }, 120);
+      return;
+    }
+
+    router.push("/");
+  }
+
   if (missingJoinInfo) {
     return (
       <main className="mx-auto min-h-screen max-w-xl px-4 py-8">
@@ -437,11 +465,14 @@ export function RoomClient({
                     <Copy className="h-3.5 w-3.5" />
                     {guestUrlCopied ? "Copied" : "Guest URL"}
                   </Button>
-                  <Link href="/">
-                    <Button variant="destructive" size="sm">
-                      Exit
-                    </Button>
-                  </Link>
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    onClick={handleExitRoom}
+                    disabled={exitLoading}
+                  >
+                    {exitLoading ? "Exiting..." : "Exit"}
+                  </Button>
                 </div>
               </div>
             </CardHeader>

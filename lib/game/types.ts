@@ -100,6 +100,12 @@ export type RequestAdvanceMessage = {
   payload?: { nextTarget?: string };
 };
 export type ResetGameMessage = { type: "reset_game" };
+export type LeaveRoomMessage = {
+  type: "leave_room";
+  payload?: {
+    clearRoom?: boolean;
+  };
+};
 export type PingMessage = { type: "ping" };
 export type ApplyRoundResultsMessage = {
   type: "apply_round_results";
@@ -116,6 +122,7 @@ export type ClientMessage =
   | SubmitPromptMessage
   | RequestAdvanceMessage
   | ResetGameMessage
+  | LeaveRoomMessage
   | PingMessage
   | ApplyRoundResultsMessage;
 

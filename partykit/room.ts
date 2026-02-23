@@ -2,12 +2,14 @@ import type * as Party from "partykit/server";
 
 import {
   applyRoundResults,
+  clearRoomParticipants,
   createInitialRoomState,
   findOfflineParticipantByNickname,
   isNicknameTaken,
   markDisconnected,
   maybeAdvanceFromPrompting,
   maybeAdvancePostResults,
+  removeParticipant,
   resetGame,
   setGameTopic,
   startGame,
@@ -271,6 +273,27 @@ export default class JeopromptyServer implements Party.Server {
           return;
         }
         resetGame(state);
+        await this.broadcastState();
+        return;
+      }
+
+      case "leave_room": {
+        const actor = this.findParticipantByConnection(state, connection.id);
+        if (!actor) {
+          connection.send(stringify({ type: "state", payload: state }));
+          return;
+        }
+
+        const inLobby = state.phase === "lobby";
+        const isHost = actor.role === "player" && state.hostSessionId === actor.sessionId;
+        const shouldClearRoom = Boolean(message.payload?.clearRoom) && inLobby && isHost;
+
+        if (shouldClearRoom) {
+          clearRoomParticipants(state);
+        } else {
+          removeParticipant(state, actor.sessionId);
+        }
+
         await this.broadcastState();
         return;
       }

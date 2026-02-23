@@ -322,6 +322,11 @@ export function useRoomConnection({
     setTopic: (topic: string) => send({ type: "set_topic", payload: { topic } }),
     submitPrompt: (prompt: string) => send({ type: "submit_prompt", payload: { prompt } }),
     resetGame: () => send({ type: "reset_game" }),
+    leaveRoom: (options?: { clearRoom?: boolean }) =>
+      send({
+        type: "leave_room",
+        payload: options?.clearRoom ? { clearRoom: true } : undefined
+      }),
     constants: {
       promptSeconds: MAX_PROMPT_SECONDS,
       totalRounds: TOTAL_ROUNDS
