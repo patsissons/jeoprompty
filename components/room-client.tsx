@@ -841,8 +841,8 @@ function PlayerPanel({
             {inLobby ? "Practice question prompt" : "Your question prompt"}
           </label>
           <textarea
-            className="min-h-28 w-full rounded-xl border border-white/10 bg-white/5 p-3 text-sm outline-none ring-0 placeholder:text-muted-foreground/40 focus:border-cyan-300/40"
-            placeholder="What famous structure can be seen from space (according to a common myth)?"
+            className="min-h-28 w-full rounded-xl border border-white/10 bg-white/5 p-3 text-base sm:text-sm outline-none ring-0 placeholder:text-muted-foreground/40 focus:border-cyan-300/40"
+            placeholder="What famous structure can be seen from space?"
             value={draftPrompt}
             onChange={(event) => setDraftPrompt(event.target.value.slice(0, 256))}
             onKeyDown={(event) => {
