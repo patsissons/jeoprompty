@@ -87,7 +87,8 @@ export function RoomClient({
   const [nickname, setNickname] = useState(initialNickname?.slice(0, 24) ?? "");
   const [draftPrompt, setDraftPrompt] = useState("");
   const [topicDraft, setTopicDraft] = useState("");
-  const [copied, setCopied] = useState(false);
+  const [guestUrlCopied, setGuestUrlCopied] = useState(false);
+  const [roomCodeCopied, setRoomCodeCopied] = useState(false);
   const [pendingSubmittedRoundId, setPendingSubmittedRoundId] = useState<string | null>(null);
   const [labTarget, setLabTarget] = useState<string | null>(null);
   const [labTargetError, setLabTargetError] = useState<string | null>(null);
@@ -219,8 +220,14 @@ export function RoomClient({
   function handleCopyGuestUrl() {
     const absolute = `${window.location.origin}/room/${roomCode.toLowerCase()}?watch=1`;
     navigator.clipboard.writeText(absolute).catch(() => undefined);
-    setCopied(true);
-    window.setTimeout(() => setCopied(false), 1200);
+    setGuestUrlCopied(true);
+    window.setTimeout(() => setGuestUrlCopied(false), 1200);
+  }
+
+  function handleCopyRoomCode() {
+    navigator.clipboard.writeText(roomCode.toUpperCase()).catch(() => undefined);
+    setRoomCodeCopied(true);
+    window.setTimeout(() => setRoomCodeCopied(false), 1200);
   }
 
   function handleSubmitPrompt() {
@@ -384,9 +391,19 @@ export function RoomClient({
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>
                   <div className="flex flex-wrap items-center gap-2">
-                    <CardTitle className="text-xl sm:text-2xl">
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={handleCopyRoomCode}
+                      className="h-auto gap-2 px-2 text-xl font-semibold tracking-tight sm:text-2xl"
+                    >
                       Room {roomCode.toUpperCase()}
-                    </CardTitle>
+                      <Copy className="h-4 w-4" />
+                      {roomCodeCopied ? (
+                        <span className="text-xs font-medium text-cyan-200">Copied</span>
+                      ) : null}
+                    </Button>
                     <Badge variant={watchMode ? "secondary" : "default"}>
                       {watchMode ? "Guest" : isHost ? "👑 Player" : "Player"}
                     </Badge>
@@ -400,6 +417,16 @@ export function RoomClient({
                     <Wifi className="h-3 w-3" />
                     {room.connectionStatus}
                   </Badge>
+                  {!watchMode && (state?.phase ?? "lobby") === "lobby" ? (
+                    <Button size="sm" onClick={handleStartGame} disabled={startGameLoading} className="gap-2">
+                      {startGameLoading ? (
+                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                      ) : (
+                        <Rocket className="h-3.5 w-3.5" />
+                      )}
+                      {startGameLoading ? "Starting..." : "Start Game"}
+                    </Button>
+                  ) : null}
                   {canHostResetToLobby ? (
                     <Button variant="destructive" size="sm" onClick={handleResetToLobby} className="gap-2">
                       <RefreshCcw className="h-3.5 w-3.5" />
@@ -408,10 +435,10 @@ export function RoomClient({
                   ) : null}
                   <Button variant="outline" size="sm" onClick={handleCopyGuestUrl} className="gap-2">
                     <Copy className="h-3.5 w-3.5" />
-                    {copied ? "Copied" : "Guest URL"}
+                    {guestUrlCopied ? "Copied" : "Guest URL"}
                   </Button>
                   <Link href="/">
-                    <Button variant="ghost" size="sm">
+                    <Button variant="destructive" size="sm">
                       Exit
                     </Button>
                   </Link>
@@ -453,9 +480,6 @@ export function RoomClient({
                 <div className="mt-2 text-xl font-semibold sm:text-2xl">
                   {state?.currentTarget ?? "Waiting for game start"}
                 </div>
-                <p className="mt-2 text-xs text-muted-foreground">
-                  Round text shown to all players. Write a question that forces a concise answer. 
-                </p>
               </div>
 
               <RoundResults
@@ -466,9 +490,6 @@ export function RoomClient({
 
               {!watchMode ? (
                 <PlayerPanel
-                  canStart={(state?.phase ?? "lobby") === "lobby"}
-                  onStart={handleStartGame}
-                  startLoading={startGameLoading}
                   onReset={handleResetToLobby}
                   canReset={isHost}
                   canEditTopic={isHost && (state?.phase ?? "lobby") === "lobby"}
@@ -568,9 +589,6 @@ export function RoomClient({
 }
 
 function PlayerPanel({
-  canStart,
-  onStart,
-  startLoading,
   onReset,
   canReset,
   canEditTopic,
@@ -595,9 +613,6 @@ function PlayerPanel({
   labRunError,
   labRunLoading
 }: {
-  canStart: boolean;
-  onStart: () => void;
-  startLoading: boolean;
   onReset: () => void;
   canReset: boolean;
   canEditTopic: boolean;
@@ -638,19 +653,18 @@ function PlayerPanel({
     <Card className="border-white/10">
       <CardHeader>
         <CardTitle className="text-lg">Player Console</CardTitle>
-        <CardDescription>{myStatus}</CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-4">
+        <CardDescription>
         {statePhase === "prompting" ? (
           <div className="space-y-2">
-            <div className="flex items-center justify-between text-xs text-muted-foreground">
-              <span>Prompt round countdown</span>
+            <div className="grid grid-cols-[1fr_auto] items-center gap-2 text-xs text-muted-foreground">
+              <Progress value={progressPct} />
               <span>{secondsRemaining}s</span>
             </div>
-            <Progress value={progressPct} />
           </div>
-        ) : null}
-
+        ) : myStatus}
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
         {statePhase === "lobby" && canEditTopic ? (
           <div className="space-y-2">
             <label className="text-xs uppercase tracking-[0.2em] text-muted-foreground">
@@ -668,19 +682,6 @@ function PlayerPanel({
           </div>
         ) : null}
 
-        {statePhase === "lobby" ? (
-          <div className="flex flex-wrap gap-3">
-            <Button onClick={onStart} disabled={!canStart || startLoading} className="gap-2">
-              {startLoading ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <Rocket className="h-4 w-4" />
-              )}
-              {startLoading ? "Starting..." : "Start Game"}
-            </Button>
-          </div>
-        ) : null}
-
         {statePhase === "game_complete" && canReset ? (
           <div className="flex flex-wrap gap-3">
             <Button onClick={onReset} variant="secondary" className="gap-2">
@@ -692,7 +693,7 @@ function PlayerPanel({
 
         {inLobby ? (
           <div className="rounded-xl border border-cyan-300/20 bg-cyan-300/5 p-3">
-            <div className="flex items-center justify-between gap-3">
+            <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
                 <div className="text-xs uppercase tracking-[0.2em] text-cyan-100/80">Prompt Lab</div>
                 <p className="mt-1 text-xs text-muted-foreground">
@@ -700,7 +701,7 @@ function PlayerPanel({
                 </p>
               </div>
               <div className="flex items-center gap-2">
-                <Badge variant="secondary">{labTargetWordCount || "?"} target words</Badge>
+                <Badge className="text-nowrap" variant="secondary">{labTargetWordCount || "?"} words</Badge>
                 <Button
                   type="button"
                   size="sm"
@@ -806,10 +807,10 @@ function PlayerPanel({
 
         <div className={cn("space-y-2", !canEditPrompt && "opacity-80")}>
           <label className="text-xs uppercase tracking-[0.2em] text-muted-foreground">
-            {inLobby ? "Practice question prompt (max 256 chars)" : "Your question prompt (max 256 chars)"}
+            {inLobby ? "Practice question prompt" : "Your question prompt"}
           </label>
           <textarea
-            className="min-h-28 w-full rounded-xl border border-white/10 bg-white/5 p-3 text-sm outline-none ring-0 placeholder:text-muted-foreground focus:border-cyan-300/40"
+            className="min-h-28 w-full rounded-xl border border-white/10 bg-white/5 p-3 text-sm outline-none ring-0 placeholder:text-muted-foreground/40 focus:border-cyan-300/40"
             placeholder="What famous structure can be seen from space (according to a common myth)?"
             value={draftPrompt}
             onChange={(event) => setDraftPrompt(event.target.value.slice(0, 256))}
@@ -829,7 +830,7 @@ function PlayerPanel({
           />
           {inLobby ? (
             <>
-              <div className="flex items-center justify-end gap-3">
+              <div className="flex items-center justify-between gap-3">
                 <span className="text-xs text-muted-foreground">{draftPrompt.length}/256</span>
                 <Button
                   onClick={onPreview}
@@ -843,7 +844,7 @@ function PlayerPanel({
             </>
           ) : (
             <>
-              <div className="flex items-center justify-end gap-3">
+              <div className="flex items-center justify-between gap-3">
                 <span className="text-xs text-muted-foreground">{draftPrompt.length}/256</span>
                 <Button onClick={onSubmit} disabled={!canEditPrompt || !draftPrompt.trim()}>
                   {submitted ? "Submitted" : "Submit Prompt"}
@@ -853,7 +854,7 @@ function PlayerPanel({
           )}
         </div>
 
-        <div className="rounded-xl border border-white/10 bg-white/5 p-3 text-xs text-muted-foreground">
+        <div className="rounded-xl border border-white/10 bg-white/5 p-3 text-xs text-muted-foreground/40">
           Prompt rules: must be a question, max 256 chars, no target leakage, no spelling hints.
         </div>
       </CardContent>

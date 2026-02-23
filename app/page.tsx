@@ -48,7 +48,7 @@ export default function HomePage({ searchParams }: Props) {
                 wins. Sloppy prompt loses.
               </p>
             </div>
-            <div className="mt-auto grid gap-3 sm:grid-cols-2">
+            <div className="mt-auto grid gap-3 sm:grid-cols-2 opacity-50">
               {[
                 ["10 rounds", "Fast tournament format"],
                 ["60 seconds", "Per prompt-writing round"],

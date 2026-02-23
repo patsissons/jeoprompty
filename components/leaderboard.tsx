@@ -58,7 +58,7 @@ export function Leaderboard({
           <Trophy className="h-5 w-5 text-orange-300" />
           {title}
         </CardTitle>
-        <Badge variant="default">{players.length} players</Badge>
+        <Badge className="text-muted-foreground/70 text-nowrap" variant="default">{players.length} players</Badge>
       </CardHeader>
       <CardContent className="space-y-2">
         {topic ? (
