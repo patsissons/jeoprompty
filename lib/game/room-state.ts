@@ -113,9 +113,22 @@ export function upsertParticipant(
   state: RoomState,
   input: { sessionId: string; connectionId: string; nickname: string; role: Role }
 ) {
-  const existing =
-    state.participants.find((p) => p.sessionId === input.sessionId) ??
-    findOfflineParticipantByNickname(state, input.nickname, { excludeSessionId: input.sessionId });
+  const existingBySessionId =
+    state.participants.find((participant) => participant.sessionId === input.sessionId) ?? null;
+  const offlineNicknameMatch = findOfflineParticipantByNickname(state, input.nickname, {
+    excludeSessionId: input.sessionId
+  });
+
+  let existing = existingBySessionId;
+  if (offlineNicknameMatch) {
+    // Nickname reconnection takes over the offline participant record so score/role/history stick.
+    existing = offlineNicknameMatch;
+    if (existingBySessionId && existingBySessionId !== offlineNicknameMatch) {
+      state.participants = state.participants.filter(
+        (participant) => participant !== existingBySessionId
+      );
+    }
+  }
   if (existing) {
     rebindParticipantSessionId(state, existing.sessionId, input.sessionId);
     existing.sessionId = input.sessionId;
