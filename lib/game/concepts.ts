@@ -72,7 +72,7 @@ export async function generateCreativeConcept({
         `Topic: ${topic?.trim() || defaultFallbackTopic}`,
         `Avoid these previous targets: ${used.slice(-20).join(" | ") || "none"}`,
         `Be original and varied (nonce: ${randomNonce()}).`,
-        "Aim for 5-10 words. Avoid punctuation.",
+        "Aim for 3-8 words. Avoid punctuation.",
       ].join("\n"),
     );
 
