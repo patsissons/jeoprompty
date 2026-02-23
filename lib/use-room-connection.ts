@@ -5,6 +5,7 @@ import PartySocket from "partysocket";
 
 import { MAX_PROMPT_SECONDS, TOTAL_ROUNDS } from "@/lib/game/constants";
 import type { ClientMessage, RoomState, ScoreApiResponse, ServerMessage } from "@/lib/game/types";
+import { setNicknameCookie } from "@/lib/nickname-cookie";
 
 type UseRoomConnectionArgs = {
   roomCode: string;
@@ -127,6 +128,7 @@ export function useRoomConnection({
   useEffect(() => {
     if (!enabled) return;
     if (connectionStatus !== "open") return;
+    setNicknameCookie(nickname);
     send({ type: "join", payload: { sessionId, nickname, role } });
   }, [enabled, connectionStatus, nickname, role, sessionId]);
 
