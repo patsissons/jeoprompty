@@ -35,7 +35,7 @@ export default function HomePage({ searchParams }: Props) {
         <section className="relative h-full overflow-hidden rounded-3xl border border-white/10 p-6 sm:p-8">
           <div className="absolute inset-0 bg-gradient-to-br from-cyan-400/10 via-transparent to-orange-400/10" />
           <div className="relative flex h-full flex-col gap-6 text-center">
-            <div className="inline-flex items-center rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs tracking-[0.2em] text-cyan-100">
+            <div className="inline-flex max-w-full items-center justify-center rounded-full border border-white/10 bg-white/5 px-3 py-1 text-center text-xs leading-tight tracking-[0.2em] text-cyan-100">
               THE PROMPTING PARTY GAME
             </div>
             <div className="space-y-3 text-center">
