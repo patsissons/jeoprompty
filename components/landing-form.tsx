@@ -2,13 +2,13 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Play, Tv2 } from "lucide-react";
+import { Play, RotateCcw, Tv2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { setNicknameCookie } from "@/lib/nickname-cookie";
-import { normalizeRoomCodeCookie, setRoomCodeCookie } from "@/lib/room-code-cookie";
+import { NICKNAME_COOKIE, setNicknameCookie } from "@/lib/nickname-cookie";
+import { normalizeRoomCodeCookie, ROOM_CODE_COOKIE, setRoomCodeCookie } from "@/lib/room-code-cookie";
 import { safeUpperRoomCode } from "@/lib/utils";
 
 function generateRandomRoomCode() {
@@ -33,6 +33,7 @@ export function LandingForm({
   const [roomCode, setRoomCode] = useState(
     () => normalizeRoomCodeCookie(initialRoomCode) || generateRandomRoomCode()
   );
+  const [resettingLocalData, setResettingLocalData] = useState(false);
 
   useEffect(() => {
     if (!nickname.trim()) return;
@@ -57,10 +58,74 @@ export function LandingForm({
     setRoomCode(generateRandomRoomCode());
   }
 
+  function clearCookie(name: string) {
+    document.cookie = `${name}=; Path=/; Max-Age=0; SameSite=Lax`;
+    document.cookie = `${name}=; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=Lax`;
+  }
+
+  function handleResetAppData() {
+    if (resettingLocalData) return;
+    const confirmed = window.confirm(
+      "Reset all local Jeoprompty app data on this device and reload?"
+    );
+    if (!confirmed) return;
+
+    setResettingLocalData(true);
+
+    try {
+      const localKeys = Object.keys(window.localStorage);
+      for (const key of localKeys) {
+        if (key.startsWith("jeoprompty")) {
+          window.localStorage.removeItem(key);
+        }
+      }
+    } catch {
+      // Ignore storage access errors and continue clearing what we can.
+    }
+
+    try {
+      const sessionKeys = Object.keys(window.sessionStorage);
+      for (const key of sessionKeys) {
+        if (key.startsWith("jeoprompty")) {
+          window.sessionStorage.removeItem(key);
+        }
+      }
+    } catch {
+      // Ignore storage access errors and continue clearing what we can.
+    }
+
+    clearCookie(NICKNAME_COOKIE);
+    clearCookie(ROOM_CODE_COOKIE);
+
+    const cookieNames = document.cookie
+      .split(";")
+      .map((entry) => entry.trim().split("=")[0])
+      .filter((name) => name.startsWith("jeoprompty_"));
+    for (const name of cookieNames) {
+      clearCookie(name);
+    }
+
+    window.location.replace("/");
+  }
+
   return (
     <Card className="relative h-full overflow-hidden border-white/15 shadow-spotlight">
       <div className="pointer-events-none absolute inset-0 noise-grid opacity-40" />
-      <CardHeader className="relative">
+      <CardHeader className="relative pr-32 sm:pr-40">
+        <div className="absolute right-0 top-0 p-5">
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            onClick={handleResetAppData}
+            disabled={resettingLocalData}
+            className="h-8 gap-1 px-2 text-xs text-muted-foreground hover:text-foreground"
+            title="Clear local app data and reload"
+          >
+            <RotateCcw className="h-3.5 w-3.5" />
+            {resettingLocalData ? "Resetting..." : "Reset App Data"}
+          </Button>
+        </div>
         <CardTitle className="text-2xl font-bold tracking-tight">Enter The Room</CardTitle>
         <CardDescription>
           One room, ten rounds, one question per round. Beat the model with precision.
