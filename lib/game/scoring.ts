@@ -1,6 +1,9 @@
 import { clamp } from "@/lib/utils";
 import { normalizeText, levenshteinDistance } from "./text";
 
+export const SEMANTIC_SCORE_WEIGHT = 0.7;
+export const LEXICAL_SCORE_WEIGHT = 0.3;
+
 export function cosineSimilarity(a: number[], b: number[]) {
   if (a.length !== b.length || a.length === 0) return 0;
   let dot = 0;
@@ -41,7 +44,8 @@ export function computeScore(params: {
     };
   }
 
-  const weighted = params.semantic * 0.7 + params.lexical * 0.3;
+  const weighted =
+    params.semantic * SEMANTIC_SCORE_WEIGHT + params.lexical * LEXICAL_SCORE_WEIGHT;
   const base = Math.round(weighted * 100);
   return {
     exactMatch: false,

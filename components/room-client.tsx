@@ -13,7 +13,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
 import { MAX_PROMPT_SECONDS } from "@/lib/game/constants";
-import type { Participant } from "@/lib/game/types";
+import {
+  LEXICAL_SCORE_WEIGHT,
+  SEMANTIC_SCORE_WEIGHT
+} from "@/lib/game/scoring";
+import type { Participant, ScoreApiResponse, ScoredSubmission } from "@/lib/game/types";
 import { setRoomCodeCookie } from "@/lib/room-code-cookie";
 import { useRoomConnection } from "@/lib/use-room-connection";
 import { cn, formatSeconds } from "@/lib/utils";
@@ -84,10 +88,13 @@ export function RoomClient({
   const [topicDraft, setTopicDraft] = useState("");
   const [copied, setCopied] = useState(false);
   const [pendingSubmittedRoundId, setPendingSubmittedRoundId] = useState<string | null>(null);
-  const [previewWordCount, setPreviewWordCount] = useState(4);
-  const [previewAnswer, setPreviewAnswer] = useState<string | null>(null);
-  const [previewError, setPreviewError] = useState<string | null>(null);
-  const [previewLoading, setPreviewLoading] = useState(false);
+  const [labTarget, setLabTarget] = useState<string | null>(null);
+  const [labTargetError, setLabTargetError] = useState<string | null>(null);
+  const [labTargetLoading, setLabTargetLoading] = useState(false);
+  const [labRunResult, setLabRunResult] = useState<ScoredSubmission | null>(null);
+  const [labRunError, setLabRunError] = useState<string | null>(null);
+  const [labRunLoading, setLabRunLoading] = useState(false);
+  const [labUsedTargets, setLabUsedTargets] = useState<string[]>([]);
   const [startGameLoading, setStartGameLoading] = useState(false);
 
   useEffect(() => {
@@ -157,9 +164,13 @@ export function RoomClient({
   useEffect(() => {
     if ((state?.phase ?? "lobby") !== "lobby") {
       setStartGameLoading(false);
-      setPreviewAnswer(null);
-      setPreviewError(null);
-      setPreviewLoading(false);
+      setLabTarget(null);
+      setLabTargetError(null);
+      setLabTargetLoading(false);
+      setLabRunResult(null);
+      setLabRunError(null);
+      setLabRunLoading(false);
+      setLabUsedTargets([]);
     }
   }, [state?.phase]);
 
@@ -219,33 +230,98 @@ export function RoomClient({
   async function handlePreviewPrompt() {
     if (!draftPrompt.trim()) return;
     if ((state?.phase ?? "lobby") !== "lobby") return;
+    if (!labTarget?.trim()) {
+      setLabRunResult(null);
+      setLabRunError("Generate a Prompt Lab target first.");
+      return;
+    }
 
-    setPreviewLoading(true);
-    setPreviewError(null);
+    setLabRunLoading(true);
+    setLabRunError(null);
 
     try {
-      const response = await fetch("/api/game/preview", {
+      const response = await fetch("/api/game/score", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          prompt: draftPrompt.trim().slice(0, 256),
-          words: previewWordCount
+          roundId: `prompt-lab-${crypto.randomUUID()}`,
+          target: labTarget.trim(),
+          submissions: [
+            {
+              playerId: sessionId ?? "prompt-lab",
+              prompt: draftPrompt.trim().slice(0, 256)
+            }
+          ]
         })
       });
 
-      const payload = (await response.json()) as { answer?: string; error?: string };
+      const payload = (await response.json()) as ScoreApiResponse & { error?: string };
       if (!response.ok) {
         throw new Error(payload.error || `API error ${response.status}`);
       }
 
-      setPreviewAnswer(payload.answer ?? "");
+      const result = payload.results[0];
+      if (!result) {
+        throw new Error("Scorer returned no result.");
+      }
+      setLabRunResult(result);
     } catch (error) {
-      setPreviewAnswer(null);
-      setPreviewError(error instanceof Error ? error.message : "Preview failed");
+      setLabRunResult(null);
+      setLabRunError(error instanceof Error ? error.message : "Prompt Lab run failed");
     } finally {
-      setPreviewLoading(false);
+      setLabRunLoading(false);
     }
   }
+
+  async function handleGeneratePromptLabTarget() {
+    if ((state?.phase ?? "lobby") !== "lobby") return;
+
+    setLabTargetLoading(true);
+    setLabTargetError(null);
+    setLabRunResult(null);
+    setLabRunError(null);
+
+    try {
+      const response = await fetch("/api/game/concept", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          topic: state?.gameTopic?.trim() || topicDraft.trim() || "expect the unexpected",
+          usedTargets: Array.from(
+            new Set([
+              ...(state?.roundHistory.map((round) => round.target) ?? []),
+              ...labUsedTargets,
+              ...(labTarget ? [labTarget] : [])
+            ])
+          )
+        })
+      });
+
+      const payload = (await response.json()) as { concept?: string; error?: string };
+      if (!response.ok) {
+        throw new Error(payload.error || `API error ${response.status}`);
+      }
+
+      const nextTarget = payload.concept?.trim();
+      if (!nextTarget) {
+        throw new Error("Concept API returned empty target.");
+      }
+
+      setLabTarget(nextTarget);
+      setLabUsedTargets((previous) => Array.from(new Set([...previous, nextTarget])));
+    } catch (error) {
+      setLabTargetError(error instanceof Error ? error.message : "Prompt Lab target generation failed");
+    } finally {
+      setLabTargetLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    if (watchMode) return;
+    if ((state?.phase ?? "lobby") !== "lobby") return;
+    if (labTarget || labTargetLoading) return;
+    void handleGeneratePromptLabTarget();
+  }, [watchMode, state?.phase, state?.createdAt, state?.roundIndex, labTarget, labTargetLoading]);
 
   function handleTopicDraftChange(value: string) {
     const next = value.slice(0, 80);
@@ -414,11 +490,13 @@ export function RoomClient({
                   submitted={submittedThisRound}
                   submittedCount={submittedCount}
                   playerCount={playerCount}
-                  previewWordCount={previewWordCount}
-                  setPreviewWordCount={setPreviewWordCount}
-                  previewAnswer={previewAnswer}
-                  previewError={previewError}
-                  previewLoading={previewLoading}
+                  labTarget={labTarget}
+                  labTargetError={labTargetError}
+                  labTargetLoading={labTargetLoading}
+                  onGenerateLabTarget={handleGeneratePromptLabTarget}
+                  labRunResult={labRunResult}
+                  labRunError={labRunError}
+                  labRunLoading={labRunLoading}
                 />
               ) : (
                 <GuestBoard
@@ -512,11 +590,13 @@ function PlayerPanel({
   submitted,
   submittedCount,
   playerCount,
-  previewWordCount,
-  setPreviewWordCount,
-  previewAnswer,
-  previewError,
-  previewLoading
+  labTarget,
+  labTargetError,
+  labTargetLoading,
+  onGenerateLabTarget,
+  labRunResult,
+  labRunError,
+  labRunLoading
 }: {
   canStart: boolean;
   onStart: () => void;
@@ -535,14 +615,25 @@ function PlayerPanel({
   submitted: boolean;
   submittedCount: number;
   playerCount: number;
-  previewWordCount: number;
-  setPreviewWordCount: (value: number) => void;
-  previewAnswer: string | null;
-  previewError: string | null;
-  previewLoading: boolean;
+  labTarget: string | null;
+  labTargetError: string | null;
+  labTargetLoading: boolean;
+  onGenerateLabTarget: () => void;
+  labRunResult: ScoredSubmission | null;
+  labRunError: string | null;
+  labRunLoading: boolean;
 }) {
   const inLobby = statePhase === "lobby";
   const canEditPrompt = inLobby || (statePhase === "prompting" && !submitted);
+  const labTargetWordCount = labTarget?.trim() ? labTarget.trim().split(/\s+/).length : 0;
+  const weightedScore =
+    labRunResult && !labRunResult.rejected && !labRunResult.exactMatch
+      ? Math.round(
+          (labRunResult.semanticScore * SEMANTIC_SCORE_WEIGHT +
+            labRunResult.lexicalScore * LEXICAL_SCORE_WEIGHT) *
+            100
+        )
+      : null;
 
   return (
     <Card className="border-white/10">
@@ -596,29 +687,108 @@ function PlayerPanel({
               <div>
                 <div className="text-xs uppercase tracking-[0.2em] text-cyan-100/80">Prompt Lab</div>
                 <p className="mt-1 text-xs text-muted-foreground">
-                  Test prompts before the game starts to preview likely answers.
+                  Test prompts against a generated target and inspect the real score breakdown.
                 </p>
               </div>
-              <Badge variant="secondary">{previewWordCount} words</Badge>
+              <div className="flex items-center gap-2">
+                <Badge variant="secondary">{labTargetWordCount || "?"} target words</Badge>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  onClick={onGenerateLabTarget}
+                  disabled={labTargetLoading}
+                  className="gap-2"
+                >
+                  {labTargetLoading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCcw className="h-3.5 w-3.5" />}
+                  New Target
+                </Button>
+              </div>
             </div>
             <div className="mt-3 rounded-lg border border-white/10 bg-white/5 p-3">
-              {previewLoading ? (
+              {labTargetLoading && !labTarget ? (
                 <div className="flex items-center gap-2 text-sm text-cyan-100">
                   <Loader2 className="h-4 w-4 animate-spin" />
-                  Generating preview...
+                  Generating target...
                 </div>
-              ) : previewError ? (
-                <p className="text-sm text-rose-200">{previewError}</p>
-              ) : previewAnswer ? (
+              ) : labTargetError && !labTarget ? (
+                <p className="text-sm text-rose-200">{labTargetError}</p>
+              ) : labTarget ? (
                 <>
                   <div className="text-[10px] uppercase tracking-[0.18em] text-cyan-100/70">
-                    Preview answer
+                    Prompt Lab target
                   </div>
-                  <div className="mt-1 text-base font-semibold text-cyan-50">{previewAnswer}</div>
+                  <div className="mt-1 text-base font-semibold text-cyan-50">{labTarget}</div>
                 </>
               ) : (
                 <p className="text-sm text-muted-foreground">
-                  Enter a question prompt below, then click Test Prompt.
+                  Generate a target, enter a question prompt below, then click Test Prompt.
+                </p>
+              )}
+            </div>
+            {labTargetError && labTarget ? (
+              <p className="mt-2 text-xs text-rose-200">
+                Target refresh failed: {labTargetError}
+              </p>
+            ) : null}
+            <div className="mt-3 rounded-lg border border-white/10 bg-white/5 p-3">
+              {labRunLoading ? (
+                <div className="flex items-center gap-2 text-sm text-cyan-100">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Running scorer...
+                </div>
+              ) : labRunError ? (
+                <p className="text-sm text-rose-200">{labRunError}</p>
+              ) : labRunResult ? (
+                <div className="space-y-3">
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <div className="text-[10px] uppercase tracking-[0.18em] text-cyan-100/70">
+                        Generated answer
+                      </div>
+                      <div className="mt-1 text-base font-semibold text-cyan-50">
+                        {labRunResult.answer}
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <div className="font-mono text-lg font-semibold">{labRunResult.scoreDelta}</div>
+                      <div className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
+                        points
+                      </div>
+                    </div>
+                  </div>
+                  {labRunResult.rejected ? (
+                    <p className="text-xs text-rose-200">
+                      Rejected: {labRunResult.rejectionReason ?? "Prompt violates prompt rules."}
+                    </p>
+                  ) : (
+                    <div className="grid gap-2 text-xs text-muted-foreground sm:grid-cols-2">
+                      <div className="rounded-md border border-white/10 bg-black/10 p-2">
+                        Exact match: {labRunResult.exactMatch ? "yes (100 points override)" : "no"}
+                      </div>
+                      <div className="rounded-md border border-white/10 bg-black/10 p-2">
+                        Semantic: {(labRunResult.semanticScore * 100).toFixed(1)}% (
+                        {labRunResult.semanticScore.toFixed(3)})
+                      </div>
+                      <div className="rounded-md border border-white/10 bg-black/10 p-2">
+                        Lexical: {(labRunResult.lexicalScore * 100).toFixed(1)}% (
+                        {labRunResult.lexicalScore.toFixed(3)})
+                      </div>
+                      <div className="rounded-md border border-white/10 bg-black/10 p-2">
+                        Blend: 70% semantic + 30% lexical
+                      </div>
+                      {!labRunResult.exactMatch ? (
+                        <div className="rounded-md border border-white/10 bg-black/10 p-2 sm:col-span-2">
+                          Math: round(((0.7 x {labRunResult.semanticScore.toFixed(3)}) + (0.3 x{" "}
+                          {labRunResult.lexicalScore.toFixed(3)})) x 100) = {weightedScore}
+                        </div>
+                      ) : null}
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <p className="text-sm text-muted-foreground">
+                  Run a prompt to see the answer, final score, and scoring components.
                 </p>
               )}
             </div>
@@ -650,38 +820,13 @@ function PlayerPanel({
           />
           {inLobby ? (
             <>
-              <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end">
-                <div className="space-y-2">
-                  <label
-                    htmlFor="preview-word-count"
-                    className="text-xs uppercase tracking-[0.2em] text-muted-foreground"
-                  >
-                    Preview answer length (words)
-                  </label>
-                  <input
-                    id="preview-word-count"
-                    type="range"
-                    min={1}
-                    max={8}
-                    step={1}
-                    value={previewWordCount}
-                    className="h-2 w-full cursor-pointer appearance-none rounded-full bg-white/10 accent-cyan-300"
-                    onChange={(event) => {
-                      setPreviewWordCount(Number.parseInt(event.target.value, 10));
-                    }}
-                  />
-                  <div className="flex items-center justify-between text-xs text-muted-foreground">
-                    <span>1 word</span>
-                    <span className="text-cyan-100">{previewWordCount}</span>
-                    <span>8 words</span>
-                  </div>
-                </div>
+              <div className="flex justify-end">
                 <Button
                   onClick={onPreview}
-                  disabled={!draftPrompt.trim() || previewLoading}
+                  disabled={!draftPrompt.trim() || labRunLoading || !labTarget}
                   className="gap-2"
                 >
-                  {previewLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+                  {labRunLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
                   Test Prompt
                 </Button>
               </div>
