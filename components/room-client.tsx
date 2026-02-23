@@ -88,6 +88,7 @@ export function RoomClient({
   const [previewAnswer, setPreviewAnswer] = useState<string | null>(null);
   const [previewError, setPreviewError] = useState<string | null>(null);
   const [previewLoading, setPreviewLoading] = useState(false);
+  const [startGameLoading, setStartGameLoading] = useState(false);
 
   useEffect(() => {
     setSessionId(getOrCreateTabSessionId());
@@ -155,11 +156,18 @@ export function RoomClient({
 
   useEffect(() => {
     if ((state?.phase ?? "lobby") !== "lobby") {
+      setStartGameLoading(false);
       setPreviewAnswer(null);
       setPreviewError(null);
       setPreviewLoading(false);
     }
   }, [state?.phase]);
+
+  useEffect(() => {
+    if (room.lastError) {
+      setStartGameLoading(false);
+    }
+  }, [room.lastError]);
 
   useEffect(() => {
     if (me?.submittedPrompt) {
@@ -253,6 +261,13 @@ export function RoomClient({
         : "End the current game and send everyone back to the lobby?";
     if (!window.confirm(message)) return;
     room.resetGame();
+  }
+
+  function handleStartGame() {
+    if ((state?.phase ?? "lobby") !== "lobby") return;
+    if (startGameLoading) return;
+    setStartGameLoading(true);
+    room.startGame();
   }
 
   if (missingJoinInfo) {
@@ -383,7 +398,8 @@ export function RoomClient({
               {!watchMode ? (
                 <PlayerPanel
                   canStart={(state?.phase ?? "lobby") === "lobby"}
-                  onStart={room.startGame}
+                  onStart={handleStartGame}
+                  startLoading={startGameLoading}
                   onReset={handleResetToLobby}
                   canReset={isHost}
                   canEditTopic={isHost && (state?.phase ?? "lobby") === "lobby"}
@@ -481,6 +497,7 @@ export function RoomClient({
 function PlayerPanel({
   canStart,
   onStart,
+  startLoading,
   onReset,
   canReset,
   canEditTopic,
@@ -503,6 +520,7 @@ function PlayerPanel({
 }: {
   canStart: boolean;
   onStart: () => void;
+  startLoading: boolean;
   onReset: () => void;
   canReset: boolean;
   canEditTopic: boolean;
@@ -552,9 +570,13 @@ function PlayerPanel({
 
         {statePhase === "lobby" ? (
           <div className="flex flex-wrap gap-3">
-            <Button onClick={onStart} className="gap-2">
-              <Rocket className="h-4 w-4" />
-              Start Game
+            <Button onClick={onStart} disabled={!canStart || startLoading} className="gap-2">
+              {startLoading ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Rocket className="h-4 w-4" />
+              )}
+              {startLoading ? "Starting..." : "Start Game"}
             </Button>
           </div>
         ) : null}
