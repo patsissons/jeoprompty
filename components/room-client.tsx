@@ -630,24 +630,29 @@ function PlayerPanel({
             <>
               <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end">
                 <div className="space-y-2">
-                  <label className="text-xs uppercase tracking-[0.2em] text-muted-foreground">
+                  <label
+                    htmlFor="preview-word-count"
+                    className="text-xs uppercase tracking-[0.2em] text-muted-foreground"
+                  >
                     Preview answer length (words)
                   </label>
-                  <Input
-                    type="number"
+                  <input
+                    id="preview-word-count"
+                    type="range"
                     min={1}
                     max={8}
                     step={1}
                     value={previewWordCount}
+                    className="h-2 w-full cursor-pointer appearance-none rounded-full bg-white/10 accent-cyan-300"
                     onChange={(event) => {
-                      const parsed = Number.parseInt(event.target.value, 10);
-                      if (Number.isNaN(parsed)) {
-                        setPreviewWordCount(4);
-                        return;
-                      }
-                      setPreviewWordCount(Math.max(1, Math.min(8, parsed)));
+                      setPreviewWordCount(Number.parseInt(event.target.value, 10));
                     }}
                   />
+                  <div className="flex items-center justify-between text-xs text-muted-foreground">
+                    <span>1 word</span>
+                    <span className="text-cyan-100">{previewWordCount}</span>
+                    <span>8 words</span>
+                  </div>
                 </div>
                 <Button
                   onClick={onPreview}

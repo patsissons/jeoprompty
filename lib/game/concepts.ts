@@ -34,14 +34,13 @@ export async function generateCreativeTopic() {
     const raw = await openAiGenerateOneLine(
       [
         "You invent game topics for a party trivia prompt-writing game.",
-        "Generate ONE fun, quirky, and creative but playable topic.",
-        "The topic should feel open-ended enough for many different concepts.",
+        "Generate ONE topic that is specific, comical, and fun to write clever concepts from that are based on the topic.",
+        "The topic should read like a phrase or sentance, and feel open-ended enough to generate many different concepts.",
         "Output only the topic text. No quotes. No numbering. No explanation."
       ].join(" "),
       [
-        `Make it surprising, fun, and ever so slightly chaotic (nonce: ${randomNonce()}).`,
-        "Aim for 2-4 words. Avoid punctuation.",
-        "Examples of vibe (not content to copy): midnight radio, museum heist, cosmic road trip, fever dream."
+        `Make it surprising, fun, and creative (nonce: ${randomNonce()}).`,
+        "Aim for 5-10 words. Avoid punctuation."
       ].join(" "),
     );
 
@@ -64,10 +63,9 @@ export async function generateCreativeConcept({
     const raw = await openAiGenerateOneLine(
       [
         "You invent target concepts for a party prompt-writing game.",
-        "Generate ONE target concept that is answerable, specific, and fun to write clever questions that describes the concept, jeopardy style.",
+        "Generate ONE target concept that is answerable, specific, and fun to write clever questions that describes the concept.",
         "The target can be a person, place, event, object, scientific idea, artwork, phenomenon, or cultural thing.",
         "Keep it recognizable but not too easy; avoid ultra-obscure trivia.",
-        "Avoid all conjunction, preposition, and logical marker words.",
         "Output only the concept text. No quotes. No numbering. No explanation."
       ].join(" "),
       [
