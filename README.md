@@ -9,7 +9,7 @@ Jeoprompty is a realtime party game where players see a secret target concept an
 - Tailwind CSS
 - shadcn-style UI primitives (local components)
 - PartyKit (realtime room state, no database)
-- OpenAI API (`gpt-5-nano` + embeddings) for answer generation and scoring
+- OpenAI API (configurable responses model, default `gpt-5-nano` + embeddings) for answer generation and scoring
 
 ## Features in this scaffold
 
@@ -39,6 +39,7 @@ cp .env.example .env.local
 
 ```bash
 OPENAI_API_KEY=sk-...
+OPENAI_MODEL=gpt-5-nano # optional override, defaults to gpt-5-nano
 NEXT_PUBLIC_PARTYKIT_HOST=127.0.0.1:1999
 ```
 
@@ -72,6 +73,7 @@ pnpm partykit:dev
 - Import this repo into Vercel.
 - Add environment variable:
   - `OPENAI_API_KEY` = your OpenAI key
+  - `OPENAI_MODEL` = optional responses model override (defaults to `gpt-5-nano`)
 - Deploy.
 
 ### 2) Deploy PartyKit room server
