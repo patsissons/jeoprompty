@@ -26,8 +26,8 @@ async function openAiFetch(path: string, init: RequestInit) {
     headers: {
       "Content-Type": "application/json",
       Authorization: `Bearer ${getApiKey()}`,
-      ...(init.headers ?? {})
-    }
+      ...(init.headers ?? {}),
+    },
   });
 
   if (!response.ok) {
@@ -54,7 +54,7 @@ function extractOutputText(payload: OpenAIResponsePayload) {
 export async function generateResponseText({
   systemPrompt,
   userPrompt,
-  maxOutputTokens = 64
+  maxOutputTokens = 64,
 }: {
   systemPrompt: string;
   userPrompt: string;
@@ -70,14 +70,14 @@ export async function generateResponseText({
       input: [
         {
           role: "system",
-          content: systemPrompt
+          content: systemPrompt,
         },
         {
           role: "user",
-          content: userPrompt
-        }
-      ]
-    })
+          content: userPrompt,
+        },
+      ],
+    }),
   });
 
   const output = extractOutputText(payload as OpenAIResponsePayload);
@@ -87,11 +87,15 @@ export async function generateResponseText({
   return output;
 }
 
-
 export async function generateConciseAnswer(prompt: string, words: number) {
   const normalizedPromptWords = prompt
     .split(/\s+/)
-    .map((word) => word.replace(/[^a-zA-Z0-9]/g, "").trim().toLowerCase())
+    .map((word) =>
+      word
+        .replace(/[^a-zA-Z0-9]/g, "")
+        .trim()
+        .toLowerCase(),
+    )
     .filter((word) => word.length > 2);
   const promptWordSet = new Set(normalizedPromptWords);
 
@@ -101,17 +105,25 @@ export async function generateConciseAnswer(prompt: string, words: number) {
     /\b(i'm sorry|sorry)\b/i,
     /\b(cannot provide|can't provide|unable to provide)\b/i,
     /\b(prohibited|restricted|not allowed|policy)\b/i,
-    /\b(i do not|i don't)\s+(know|have enough|have sufficient)\b/i
+    /\b(i do not|i don't)\s+(know|have enough|have sufficient)\b/i,
   ];
 
   function cleanAnswer(text: string) {
-    return text.replace(/\s+/g, " ").trim().replace(/^["'`]+|["'`]+$/g, "");
+    return text
+      .replace(/\s+/g, " ")
+      .trim()
+      .replace(/^["'`]+|["'`]+$/g, "");
   }
 
   function answerWords(text: string) {
     return text
       .split(/\s+/)
-      .map((word) => word.replace(/[^a-zA-Z0-9]/g, "").trim().toLowerCase())
+      .map((word) =>
+        word
+          .replace(/[^a-zA-Z0-9]/g, "")
+          .trim()
+          .toLowerCase(),
+      )
       .filter(Boolean);
   }
 
@@ -124,7 +136,10 @@ export async function generateConciseAnswer(prompt: string, words: number) {
 
     const tokens = answerWords(cleaned);
     if (tokens.length !== words) {
-      return { ok: false as const, reason: `wrong word count (${tokens.length} != ${words})` };
+      return {
+        ok: false as const,
+        reason: `wrong word count (${tokens.length} != ${words})`,
+      };
     }
 
     // Keep anti-echo checks strict early, then relax so we still get a direct answer.
@@ -144,24 +159,24 @@ export async function generateConciseAnswer(prompt: string, words: number) {
       `Return exactly ${words} words.`,
       "Output only the answer text.",
       "Do not output prefaces, explanations, apologies, refusals, or policy text.",
-      "If wording constraints conflict, rewrite with close synonyms and still answer directly."
+      "If wording constraints conflict, rewrite with close synonyms and still answer directly.",
     ];
 
     if (normalizedPromptWords.length > 0) {
       systemPromptParts.push(
-        `Avoid reusing these prompt words when possible: ${normalizedPromptWords.join(", ")}.`
+        `Avoid reusing these prompt words when possible: ${normalizedPromptWords.join(", ")}.`,
       );
     }
     if (attempt > 1) {
       systemPromptParts.push(
-        `Previous output failed validation (${lastFailure}). Fix that and return only the final answer.`
+        `Previous output failed validation (${lastFailure}). Fix that and return only the final answer.`,
       );
     }
 
     const answer = await generateResponseText({
       systemPrompt: systemPromptParts.join(" "),
       userPrompt: prompt,
-      maxOutputTokens: Math.max(24, words * 8)
+      maxOutputTokens: Math.max(24, words * 8),
     });
 
     const validation = validateAnswer(answer, attempt);
@@ -171,7 +186,9 @@ export async function generateConciseAnswer(prompt: string, words: number) {
     lastFailure = validation.reason;
   }
 
-  throw new Error(`Could not generate a valid direct answer after ${maxAttempts} attempts (${lastFailure}).`);
+  throw new Error(
+    `Could not generate a valid direct answer after ${maxAttempts} attempts (${lastFailure}).`,
+  );
 }
 
 type EmbeddingPayload = {
@@ -184,8 +201,8 @@ export async function embedTexts(input: string[]) {
     method: "POST",
     body: JSON.stringify({
       model: EMBEDDING_MODEL,
-      input
-    })
+      input,
+    }),
   })) as EmbeddingPayload;
 
   return (payload.data ?? []).map((row) => row.embedding ?? []);

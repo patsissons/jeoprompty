@@ -1,6 +1,11 @@
 import { clamp } from "@/lib/utils";
 import { MAX_TEXT_LENGTH } from "./constants";
-import { ensureQuestionMark, normalizeText, startsWithQuestionWord, trimToMax } from "./text";
+import {
+  ensureQuestionMark,
+  normalizeText,
+  startsWithQuestionWord,
+  trimToMax,
+} from "./text";
 
 export type CheatFilterInput = {
   prompt: string;
@@ -21,18 +26,21 @@ const META_CHEAT_PATTERNS = [
   /\bletter by letter\b/i,
   /\bgive me the exact phrase\b/i,
   /\bverbatim\b/i,
-  /\bcharacter(s)?\b/i
+  /\bcharacter(s)?\b/i,
 ];
 
 export function checkPromptForCheating({
   prompt,
   target,
-  semanticSimilarityToTarget
+  semanticSimilarityToTarget,
 }: CheatFilterInput): CheatFilterResult {
   const cleanedPrompt = trimToMax(prompt, MAX_TEXT_LENGTH);
   if (!cleanedPrompt) return { ok: false, reason: "Prompt is required." };
   if (!startsWithQuestionWord(cleanedPrompt)) {
-    return { ok: false, reason: "Prompt must start with who, what, when, where, or why." };
+    return {
+      ok: false,
+      reason: "Prompt must start with who, what, when, where, or why.",
+    };
   }
   const sanitizedPrompt = ensureQuestionMark(cleanedPrompt, MAX_TEXT_LENGTH);
 
@@ -58,7 +66,7 @@ export function checkPromptForCheating({
   if (META_CHEAT_PATTERNS.some((pattern) => pattern.test(sanitizedPrompt))) {
     return {
       ok: false,
-      reason: "Prompt uses disallowed clueing or spelling strategies."
+      reason: "Prompt uses disallowed clueing or spelling strategies.",
     };
   }
 
@@ -67,7 +75,7 @@ export function checkPromptForCheating({
     if (sim >= 0.8) {
       return {
         ok: false,
-        reason: "Prompt is too semantically similar to the target."
+        reason: "Prompt is too semantically similar to the target.",
       };
     }
   }

@@ -4,7 +4,12 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import PartySocket from "partysocket";
 
 import { MAX_PROMPT_SECONDS, TOTAL_ROUNDS } from "@/lib/game/constants";
-import type { ClientMessage, RoomState, ScoreApiResponse, ServerMessage } from "@/lib/game/types";
+import type {
+  ClientMessage,
+  RoomState,
+  ScoreApiResponse,
+  ServerMessage,
+} from "@/lib/game/types";
 import { setNicknameCookie } from "@/lib/nickname-cookie";
 
 type UseRoomConnectionArgs = {
@@ -20,7 +25,7 @@ export function useRoomConnection({
   nickname,
   role,
   sessionId,
-  enabled
+  enabled,
 }: UseRoomConnectionArgs) {
   const [state, setState] = useState<RoomState | null>(null);
   const [connectionStatus, setConnectionStatus] = useState<
@@ -48,7 +53,7 @@ export function useRoomConnection({
     const response = await fetch("/api/game/topic", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ usedTopics: input?.usedTopics ?? [] })
+      body: JSON.stringify({ usedTopics: input?.usedTopics ?? [] }),
     });
     if (!response.ok) {
       const body = await response.text();
@@ -61,11 +66,14 @@ export function useRoomConnection({
     return payload.topic.trim();
   }
 
-  async function fetchGeneratedConcept(input: { topic: string; usedTargets: string[] }) {
+  async function fetchGeneratedConcept(input: {
+    topic: string;
+    usedTargets: string[];
+  }) {
     const response = await fetch("/api/game/concept", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(input)
+      body: JSON.stringify(input),
     });
     if (!response.ok) {
       const body = await response.text();
@@ -87,7 +95,7 @@ export function useRoomConnection({
 
     const socket = new PartySocket({
       host: host!,
-      room: roomCode.toLowerCase()
+      room: roomCode.toLowerCase(),
     });
     socketRef.current = socket;
 
@@ -131,7 +139,11 @@ export function useRoomConnection({
   useEffect(() => {
     const topic = state?.gameTopic?.trim();
     if (!topic) return;
-    if (topicHistoryRef.current.some((item) => item.toLowerCase() === topic.toLowerCase())) {
+    if (
+      topicHistoryRef.current.some(
+        (item) => item.toLowerCase() === topic.toLowerCase(),
+      )
+    ) {
       return;
     }
     topicHistoryRef.current = [...topicHistoryRef.current.slice(-19), topic];
@@ -168,7 +180,7 @@ export function useRoomConnection({
         try {
           const nextTarget = await fetchGeneratedConcept({
             topic: state.gameTopic,
-            usedTargets: state.roundHistory.map((round) => round.target)
+            usedTargets: state.roundHistory.map((round) => round.target),
           });
           send({ type: "request_advance", payload: { nextTarget } });
         } catch {
@@ -192,7 +204,7 @@ export function useRoomConnection({
 
   const isHost = useMemo(
     () => state?.hostSessionId === sessionId,
-    [state?.hostSessionId, sessionId]
+    [state?.hostSessionId, sessionId],
   );
 
   useEffect(() => {
@@ -217,9 +229,9 @@ export function useRoomConnection({
           usedTopics: Array.from(
             new Set([
               ...topicHistoryRef.current,
-              ...(trimmedBaselineTopic ? [trimmedBaselineTopic] : [])
-            ])
-          )
+              ...(trimmedBaselineTopic ? [trimmedBaselineTopic] : []),
+            ]),
+          ),
         });
         const latest = stateRef.current;
         if (!latest) return;
@@ -239,7 +251,7 @@ export function useRoomConnection({
 
   const isResolver = useMemo(
     () => state?.resolverSessionId === sessionId,
-    [state?.resolverSessionId, sessionId]
+    [state?.resolverSessionId, sessionId],
   );
 
   useEffect(() => {
@@ -261,9 +273,9 @@ export function useRoomConnection({
             target: state.currentTarget,
             submissions: state.submissions.map((submission) => ({
               playerId: submission.playerId,
-              prompt: submission.prompt
-            }))
-          })
+              prompt: submission.prompt,
+            })),
+          }),
         });
 
         if (!response.ok) {
@@ -276,12 +288,14 @@ export function useRoomConnection({
           type: "apply_round_results",
           payload: {
             roundId: payload.roundId,
-            results: payload.results
-          }
+            results: payload.results,
+          },
         });
       } catch (error) {
         setLastError(
-          error instanceof Error ? `Round scoring failed: ${error.message}` : "Round scoring failed."
+          error instanceof Error
+            ? `Round scoring failed: ${error.message}`
+            : "Round scoring failed.",
         );
         // Allow retry on next render tick if still in resolving.
         window.setTimeout(() => {
@@ -332,30 +346,32 @@ export function useRoomConnection({
         try {
           const initialTarget = await fetchGeneratedConcept({
             topic: state.gameTopic,
-            usedTargets: state.roundHistory.map((round) => round.target)
+            usedTargets: state.roundHistory.map((round) => round.target),
           });
           send({ type: "start_game", payload: { initialTarget } });
         } catch (error) {
           setLastError(
             error instanceof Error
               ? `Concept generation failed: ${error.message}`
-              : "Concept generation failed."
+              : "Concept generation failed.",
           );
           send({ type: "start_game" });
         }
       })();
     },
-    setTopic: (topic: string) => send({ type: "set_topic", payload: { topic } }),
-    submitPrompt: (prompt: string) => send({ type: "submit_prompt", payload: { prompt } }),
+    setTopic: (topic: string) =>
+      send({ type: "set_topic", payload: { topic } }),
+    submitPrompt: (prompt: string) =>
+      send({ type: "submit_prompt", payload: { prompt } }),
     resetGame: () => send({ type: "reset_game" }),
     leaveRoom: (options?: { clearRoom?: boolean }) =>
       send({
         type: "leave_room",
-        payload: options?.clearRoom ? { clearRoom: true } : undefined
+        payload: options?.clearRoom ? { clearRoom: true } : undefined,
       }),
     constants: {
       promptSeconds: MAX_PROMPT_SECONDS,
-      totalRounds: TOTAL_ROUNDS
-    }
+      totalRounds: TOTAL_ROUNDS,
+    },
   };
 }

@@ -6,7 +6,7 @@ import { generateCreativeTopic } from "@/lib/game/concepts";
 export const runtime = "nodejs";
 
 const requestSchema = z.object({
-  usedTopics: z.array(z.string().trim().min(1).max(120)).max(64).optional()
+  usedTopics: z.array(z.string().trim().min(1).max(120)).max(64).optional(),
 });
 
 export async function POST(request: Request) {
@@ -19,14 +19,17 @@ export async function POST(request: Request) {
     if (error instanceof z.ZodError) {
       return NextResponse.json(
         { error: "Invalid topic request.", details: error.flatten() },
-        { status: 400 }
+        { status: 400 },
       );
     }
-    return NextResponse.json({ error: "Invalid JSON request." }, { status: 400 });
+    return NextResponse.json(
+      { error: "Invalid JSON request." },
+      { status: 400 },
+    );
   }
 
   const topic = await generateCreativeTopic({
-    used: parsed.usedTopics ?? []
+    used: parsed.usedTopics ?? [],
   });
 
   return NextResponse.json({ topic });

@@ -5,34 +5,47 @@ import { useRouter } from "next/navigation";
 import { Play, RotateCcw, Tv2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { playIntroAudio } from "@/lib/intro-audio";
 import { NICKNAME_COOKIE, setNicknameCookie } from "@/lib/nickname-cookie";
-import { normalizeRoomCodeCookie, ROOM_CODE_COOKIE, setRoomCodeCookie } from "@/lib/room-code-cookie";
+import {
+  normalizeRoomCodeCookie,
+  ROOM_CODE_COOKIE,
+  setRoomCodeCookie,
+} from "@/lib/room-code-cookie";
 import { safeUpperRoomCode } from "@/lib/utils";
 
 function generateRandomRoomCode() {
   const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
-  return Array.from({ length: 4 }, () => chars[Math.floor(Math.random() * chars.length)]).join(
-    ""
-  );
+  return Array.from(
+    { length: 4 },
+    () => chars[Math.floor(Math.random() * chars.length)],
+  ).join("");
 }
 
 export function LandingForm({
   initialRoomCode,
   initialNickname,
-  initialJoinError
+  initialJoinError,
 }: {
   initialRoomCode?: string;
   initialNickname?: string;
   initialJoinError?: string;
 }) {
   const router = useRouter();
-  const [nickname, setNickname] = useState(() => (initialNickname ?? "").slice(0, 24));
+  const [nickname, setNickname] = useState(() =>
+    (initialNickname ?? "").slice(0, 24),
+  );
   const [joinError, setJoinError] = useState(initialJoinError ?? "");
   const [roomCode, setRoomCode] = useState(
-    () => normalizeRoomCodeCookie(initialRoomCode) || generateRandomRoomCode()
+    () => normalizeRoomCodeCookie(initialRoomCode) || generateRandomRoomCode(),
   );
   const [resettingLocalData, setResettingLocalData] = useState(false);
 
@@ -67,7 +80,7 @@ export function LandingForm({
   function handleResetAppData() {
     if (resettingLocalData) return;
     const confirmed = window.confirm(
-      "Reset all local Jeoprompty app data on this device and reload?"
+      "Reset all local Jeoprompty app data on this device and reload?",
     );
     if (!confirmed) return;
 
@@ -127,9 +140,12 @@ export function LandingForm({
             {resettingLocalData ? "Resetting..." : "Reset App Data"}
           </Button>
         </div>
-        <CardTitle className="text-2xl font-bold tracking-tight">Enter The Room</CardTitle>
+        <CardTitle className="text-2xl font-bold tracking-tight">
+          Enter The Room
+        </CardTitle>
         <CardDescription>
-          One room, five rounds, one question per round. Beat the model with precision.
+          One room, five rounds, one question per round. Beat the model with
+          precision.
         </CardDescription>
       </CardHeader>
       <CardContent className="relative space-y-4">
@@ -201,7 +217,8 @@ export function LandingForm({
           </Button>
         </div>
         <p className="text-xs text-muted-foreground">
-          Guests use the same room, but only see the leaderboard and round status board.
+          Guests use the same room, but only see the leaderboard and round
+          status board.
         </p>
       </CardContent>
     </Card>

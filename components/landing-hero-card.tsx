@@ -30,8 +30,9 @@ export function LandingHeroCard() {
             This is Jeoprompty<span className="text-orange-300">!</span>
           </h1>
           <p className="text-base text-muted-foreground sm:text-lg">
-            Race to write the perfect question that results in GPT responding with the target text
-            for the round. Exact answer wins. Sloppy prompt loses.
+            Race to write the perfect question that results in GPT responding
+            with the target text for the round. Exact answer wins. Sloppy prompt
+            loses.
           </p>
         </div>
         <div className="mt-auto grid gap-3 opacity-50 sm:grid-cols-2">
@@ -39,7 +40,10 @@ export function LandingHeroCard() {
             ["5 rounds", "Fast tournament format"],
             ["60 seconds", "Per prompt-writing round"],
           ].map(([title, detail]) => (
-            <div key={title} className="rounded-2xl border border-white/10 bg-white/5 p-4">
+            <div
+              key={title}
+              className="rounded-2xl border border-white/10 bg-white/5 p-4"
+            >
               <p className="text-sm font-semibold">{title}</p>
               <p className="text-xs text-muted-foreground">{detail}</p>
             </div>

@@ -34,23 +34,25 @@ export function computeScore(params: {
   semantic: number;
   lexical: number;
 }) {
-  const exactMatch = normalizeText(params.answer) === normalizeText(params.target);
+  const exactMatch =
+    normalizeText(params.answer) === normalizeText(params.target);
   if (exactMatch) {
     return {
       exactMatch: true,
       semanticScore: 1,
       lexicalScore: 1,
-      scoreDelta: 100
+      scoreDelta: 100,
     };
   }
 
   const weighted =
-    params.semantic * SEMANTIC_SCORE_WEIGHT + params.lexical * LEXICAL_SCORE_WEIGHT;
+    params.semantic * SEMANTIC_SCORE_WEIGHT +
+    params.lexical * LEXICAL_SCORE_WEIGHT;
   const base = Math.round(weighted * 100);
   return {
     exactMatch: false,
     semanticScore: clamp(params.semantic, 0, 1),
     lexicalScore: clamp(params.lexical, 0, 1),
-    scoreDelta: clamp(base, 0, 100)
+    scoreDelta: clamp(base, 0, 100),
   };
 }

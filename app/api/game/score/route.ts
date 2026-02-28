@@ -2,8 +2,16 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 
 import { checkPromptForCheating } from "@/lib/game/cheat-filter";
-import { computeScore, cosineSimilarity, lexicalCloseness } from "@/lib/game/scoring";
-import type { ScoreApiRequest, ScoreApiResponse, ScoredSubmission } from "@/lib/game/types";
+import {
+  computeScore,
+  cosineSimilarity,
+  lexicalCloseness,
+} from "@/lib/game/scoring";
+import type {
+  ScoreApiRequest,
+  ScoreApiResponse,
+  ScoredSubmission,
+} from "@/lib/game/types";
 import { trimToMax } from "@/lib/game/text";
 import { embedTexts, generateConciseAnswer } from "@/lib/openai";
 
@@ -16,16 +24,17 @@ const requestSchema = z.object({
     .array(
       z.object({
         playerId: z.string().min(1),
-        prompt: z.string().min(1).max(256)
-      })
+        prompt: z.string().min(1).max(256),
+      }),
     )
-    .max(24)
+    .max(24),
 });
 
 async function buildSimilarityMap(target: string, values: string[]) {
   try {
     const embeddings = await embedTexts([target, ...values]);
-    if (embeddings.length !== values.length + 1) return new Map<string, number>();
+    if (embeddings.length !== values.length + 1)
+      return new Map<string, number>();
     const [targetEmbedding, ...valueEmbeddings] = embeddings;
     const map = new Map<string, number>();
     values.forEach((value, index) => {
@@ -46,16 +55,19 @@ export async function POST(request: Request) {
     if (error instanceof z.ZodError) {
       return NextResponse.json(
         { error: "Invalid score request.", details: error.flatten() },
-        { status: 400 }
+        { status: 400 },
       );
     }
-    return NextResponse.json({ error: "Invalid JSON request." }, { status: 400 });
+    return NextResponse.json(
+      { error: "Invalid JSON request." },
+      { status: 400 },
+    );
   }
 
   const { roundId, target, submissions } = parsed;
   const promptSimilarityMap = await buildSimilarityMap(
     target,
-    submissions.map((s) => s.prompt)
+    submissions.map((s) => s.prompt),
   );
 
   const preliminaryResults: Array<{
@@ -70,7 +82,8 @@ export async function POST(request: Request) {
     const filter = checkPromptForCheating({
       prompt: submission.prompt,
       target,
-      semanticSimilarityToTarget: promptSimilarityMap.get(submission.prompt) ?? null
+      semanticSimilarityToTarget:
+        promptSimilarityMap.get(submission.prompt) ?? null,
     });
 
     if (!filter.ok) {
@@ -79,7 +92,7 @@ export async function POST(request: Request) {
         prompt: trimToMax(submission.prompt),
         answer: "Rejected",
         rejected: true,
-        rejectionReason: filter.reason
+        rejectionReason: filter.reason,
       });
       continue;
     }
@@ -91,7 +104,7 @@ export async function POST(request: Request) {
         playerId: submission.playerId,
         prompt: filter.sanitizedPrompt,
         answer: trimToMax(answer),
-        rejected: false
+        rejected: false,
       });
     } catch (error) {
       preliminaryResults.push({
@@ -100,7 +113,9 @@ export async function POST(request: Request) {
         answer: "Model error",
         rejected: true,
         rejectionReason:
-          error instanceof Error ? `Generation failed: ${error.message}` : "Generation failed"
+          error instanceof Error
+            ? `Generation failed: ${error.message}`
+            : "Generation failed",
       });
     }
   }
@@ -108,7 +123,10 @@ export async function POST(request: Request) {
   const nonRejectedAnswers = preliminaryResults
     .filter((r) => !r.rejected)
     .map((r) => r.answer);
-  const answerSimilarityMap = await buildSimilarityMap(target, nonRejectedAnswers);
+  const answerSimilarityMap = await buildSimilarityMap(
+    target,
+    nonRejectedAnswers,
+  );
 
   const results: ScoredSubmission[] = preliminaryResults.map((result) => {
     if (result.rejected) {
@@ -121,7 +139,7 @@ export async function POST(request: Request) {
         lexicalScore: 0,
         scoreDelta: 0,
         rejected: true,
-        rejectionReason: result.rejectionReason
+        rejectionReason: result.rejectionReason,
       };
     }
 
@@ -131,7 +149,7 @@ export async function POST(request: Request) {
       answer: result.answer,
       target,
       semantic,
-      lexical
+      lexical,
     });
 
     return {
@@ -142,7 +160,7 @@ export async function POST(request: Request) {
       semanticScore: scored.semanticScore,
       lexicalScore: scored.lexicalScore,
       scoreDelta: scored.scoreDelta,
-      rejected: false
+      rejected: false,
     };
   });
 

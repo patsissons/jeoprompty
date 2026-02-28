@@ -40,7 +40,7 @@ export function Leaderboard({
   highlightSessionId,
   title = "Leaderboard",
   topic,
-  topicLoading = false
+  topicLoading = false,
 }: {
   participants: Participant[];
   hostSessionId?: string | null;
@@ -60,7 +60,12 @@ export function Leaderboard({
           <Trophy className="h-5 w-5 text-orange-300" />
           {title}
         </CardTitle>
-        <Badge className="text-muted-foreground/70 text-nowrap" variant="default">{players.length} players</Badge>
+        <Badge
+          className="text-muted-foreground/70 text-nowrap"
+          variant="default"
+        >
+          {players.length} players
+        </Badge>
       </CardHeader>
       <CardContent className="space-y-2">
         {topic ? (
@@ -68,7 +73,9 @@ export function Leaderboard({
             <div className="text-[10px] uppercase tracking-[0.18em] text-cyan-100/80">
               Game Topic
             </div>
-            <div className="mt-1 text-sm font-semibold text-cyan-50">{topic}</div>
+            <div className="mt-1 text-sm font-semibold text-cyan-50">
+              {topic}
+            </div>
           </div>
         ) : topicLoading ? (
           <div className="rounded-xl border border-cyan-300/20 bg-cyan-400/10 p-3">
@@ -90,7 +97,7 @@ export function Leaderboard({
                 "flex flex-wrap items-center gap-3 rounded-xl border p-3 sm:flex-nowrap",
                 highlightSessionId === player.sessionId
                   ? "border-cyan-300/30 bg-cyan-400/5"
-                  : "border-white/10 bg-white/5"
+                  : "border-white/10 bg-white/5",
               ].join(" ")}
             >
               <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white/10 text-xs font-semibold">
@@ -112,7 +119,9 @@ export function Leaderboard({
                 </div>
               </div>
               <div className="ml-auto flex shrink-0 items-center gap-2 text-right">
-                <div className="font-mono text-lg font-semibold">{player.score}</div>
+                <div className="font-mono text-lg font-semibold">
+                  {player.score}
+                </div>
                 <div className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
                   points
                 </div>

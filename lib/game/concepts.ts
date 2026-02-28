@@ -40,7 +40,7 @@ const TOPIC_DIVERSITY_LENSES = [
   "turn a local neighborhood dispute into an epic saga",
   "imagine a public holiday for an extremely specific inconvenience",
   "mix legal language with a clearly unserious situation",
-  "treat a common saying as literal public policy"
+  "treat a common saying as literal public policy",
 ];
 
 const TOPIC_STOP_WORDS = new Set([
@@ -69,7 +69,7 @@ const TOPIC_STOP_WORDS = new Set([
   "surprising",
   "random",
   "funny",
-  "comical"
+  "comical",
 ]);
 
 function sampleLenses(count: number) {
@@ -157,16 +157,19 @@ async function buildTopicSimilarityContext(used: string[]) {
       used
         .map((value) => sanitizeSingleLineText(value, 120))
         .filter(Boolean)
-        .slice(-16)
-    )
+        .slice(-16),
+    ),
   );
   return {
     recentTopics: uniqueRecentTopics,
-    recentEmbeddings: await maybeEmbedTexts(uniqueRecentTopics)
+    recentEmbeddings: await maybeEmbedTexts(uniqueRecentTopics),
   } satisfies TopicSimilarityContext;
 }
 
-async function isTopicTooSimilar(topic: string, context: TopicSimilarityContext) {
+async function isTopicTooSimilar(
+  topic: string,
+  context: TopicSimilarityContext,
+) {
   const normalizedCandidate = normalizeText(topic);
   if (!normalizedCandidate) return true;
 
@@ -174,7 +177,10 @@ async function isTopicTooSimilar(topic: string, context: TopicSimilarityContext)
     const normalizedRecent = normalizeText(recent);
     if (!normalizedRecent) continue;
     if (normalizedCandidate === normalizedRecent) return true;
-    const lexicalSimilarity = lexicalTopicSimilarity(normalizedCandidate, normalizedRecent);
+    const lexicalSimilarity = lexicalTopicSimilarity(
+      normalizedCandidate,
+      normalizedRecent,
+    );
     if (lexicalSimilarity >= 0.58) {
       return true;
     }
@@ -187,7 +193,10 @@ async function isTopicTooSimilar(topic: string, context: TopicSimilarityContext)
   if (!candidateEmbedding?.length) return false;
 
   for (const recentEmbedding of context.recentEmbeddings) {
-    const semanticSimilarity = cosineSimilarity(candidateEmbedding, recentEmbedding);
+    const semanticSimilarity = cosineSimilarity(
+      candidateEmbedding,
+      recentEmbedding,
+    );
     if (semanticSimilarity >= 0.88) {
       return true;
     }
@@ -196,10 +205,7 @@ async function isTopicTooSimilar(topic: string, context: TopicSimilarityContext)
   return false;
 }
 
-async function openAiGenerateOneLine(
-  systemPrompt: string,
-  userPrompt: string
-) {
+async function openAiGenerateOneLine(systemPrompt: string, userPrompt: string) {
   const { generateResponseText } = await import("@/lib/openai");
   return generateResponseText({
     systemPrompt,
@@ -209,7 +215,9 @@ async function openAiGenerateOneLine(
 
 export const DEFAULT_FALLBACK_TOPIC = "expect the unexpected";
 
-export async function generateCreativeTopic({ used = [] }: { used?: string[] } = {}) {
+export async function generateCreativeTopic({
+  used = [],
+}: { used?: string[] } = {}) {
   try {
     const similarityContext = await buildTopicSimilarityContext(used);
     for (let attempt = 0; attempt < 10; attempt += 1) {
@@ -221,13 +229,13 @@ export async function generateCreativeTopic({ used = [] }: { used?: string[] } =
           "The topic should read like a phrase or sentance, and feel open-ended enough to generate many different concepts.",
           "Prioritize novelty in both framing and subject matter.",
           "Avoid defaulting to common pets plants or wildlife unless the twist is unusually original.",
-          "Output only the topic text. No quotes. No numbering. No explanation."
+          "Output only the topic text. No quotes. No numbering. No explanation.",
         ].join(" "),
         [
           `Recently used topics to avoid semantic overlap: ${similarityContext.recentTopics.join(" | ") || "none"}`,
           `Creative lenses to influence this attempt: ${lenses.join(" + ")}`,
           `Make it surprising, fun, and creative (nonce: ${randomNonce()}).`,
-          "Aim for 5-10 words. Avoid punctuation."
+          "Aim for 5-10 words. Avoid punctuation.",
         ].join("\n"),
       );
 
@@ -248,7 +256,7 @@ export async function generateCreativeTopic({ used = [] }: { used?: string[] } =
 
 export async function generateCreativeConcept({
   topic,
-  used = []
+  used = [],
 }: {
   topic?: string | null;
   used?: string[];
@@ -260,7 +268,7 @@ export async function generateCreativeConcept({
         "Generate ONE target concept that is answerable, specific, and fun to write clever questions that describes the concept.",
         "The target can be a person, place, event, object, scientific idea, artwork, phenomenon, or cultural thing.",
         "Keep it recognizable but not too easy; avoid ultra-obscure trivia.",
-        "Output only the concept text. No quotes. No numbering. No explanation."
+        "Output only the concept text. No quotes. No numbering. No explanation.",
       ].join(" "),
       [
         `Topic: ${topic?.trim() || DEFAULT_FALLBACK_TOPIC}`,

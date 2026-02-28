@@ -14,9 +14,14 @@ import {
   setGameTopic,
   startGame,
   submitPrompt,
-  upsertParticipant
+  upsertParticipant,
 } from "../lib/game/room-state";
-import type { ClientMessage, RoomState, ScoredSubmission, ServerMessage } from "../lib/game/types";
+import type {
+  ClientMessage,
+  RoomState,
+  ScoredSubmission,
+  ServerMessage,
+} from "../lib/game/types";
 
 const STORAGE_KEY = "jeoprompty-room-state";
 
@@ -57,7 +62,10 @@ export default class JeopromptyServer implements Party.Server {
 
   private maybeAdvanceState(
     state: RoomState,
-    options?: { nextTarget?: string; allowRoundCompleteWithoutTarget?: boolean }
+    options?: {
+      nextTarget?: string;
+      allowRoundCompleteWithoutTarget?: boolean;
+    },
   ) {
     if (maybeAdvanceFromPrompting(state)) {
       return true;
@@ -78,7 +86,11 @@ export default class JeopromptyServer implements Party.Server {
         const existing = await this.room.storage?.get<RoomState>(STORAGE_KEY);
         const state =
           existing ??
-          createInitialRoomState(String(this.room.id).replace(/[^a-z0-9]/gi, "").toUpperCase());
+          createInitialRoomState(
+            String(this.room.id)
+              .replace(/[^a-z0-9]/gi, "")
+              .toUpperCase(),
+          );
         return state;
       })();
     }
@@ -96,11 +108,15 @@ export default class JeopromptyServer implements Party.Server {
   }
 
   private getPlayerCount(state: RoomState) {
-    return state.participants.filter((participant) => participant.role === "player").length;
+    return state.participants.filter(
+      (participant) => participant.role === "player",
+    ).length;
   }
 
   private findParticipantByConnection(state: RoomState, connectionId: string) {
-    return state.participants.find((participant) => participant.connectionId === connectionId);
+    return state.participants.find(
+      (participant) => participant.connectionId === connectionId,
+    );
   }
 
   private sendError(connection: Party.Connection, message: string) {
@@ -111,8 +127,8 @@ export default class JeopromptyServer implements Party.Server {
     connection.send(
       stringify({
         type: "toast",
-        payload: { message: "Connected. Join the room to sync state." }
-      })
+        payload: { message: "Connected. Join the room to sync state." },
+      }),
     );
   }
 
@@ -139,19 +155,33 @@ export default class JeopromptyServer implements Party.Server {
           this.sendError(connection, "Nickname and session are required.");
           return;
         }
-        if (isNicknameTaken(state, trimmedNickname, { excludeSessionId: sessionId, connectedOnly: true })) {
+        if (
+          isNicknameTaken(state, trimmedNickname, {
+            excludeSessionId: sessionId,
+            connectedOnly: true,
+          })
+        ) {
           this.sendError(connection, "That nickname is already taken.");
           return;
         }
-        const reconnectingParticipant = findOfflineParticipantByNickname(state, trimmedNickname, {
-          excludeSessionId: sessionId
-        });
+        const reconnectingParticipant = findOfflineParticipantByNickname(
+          state,
+          trimmedNickname,
+          {
+            excludeSessionId: sessionId,
+          },
+        );
         const playerCount = this.getPlayerCount(state);
         const alreadyPlayer = state.participants.some(
-          (p) => p.sessionId === sessionId && p.role === "player"
+          (p) => p.sessionId === sessionId && p.role === "player",
         );
         const reconnectingPlayer = reconnectingParticipant?.role === "player";
-        if (role === "player" && !alreadyPlayer && !reconnectingPlayer && playerCount >= state.maxPlayers) {
+        if (
+          role === "player" &&
+          !alreadyPlayer &&
+          !reconnectingPlayer &&
+          playerCount >= state.maxPlayers
+        ) {
           this.sendError(connection, "This room is full.");
           return;
         }
@@ -159,7 +189,7 @@ export default class JeopromptyServer implements Party.Server {
           sessionId,
           connectionId: connection.id,
           nickname: trimmedNickname,
-          role
+          role,
         });
         connection.send(stringify({ type: "state", payload: state }));
         await this.broadcastState();
@@ -189,7 +219,10 @@ export default class JeopromptyServer implements Party.Server {
         }
         const result = setGameTopic(state, message.payload.topic);
         if (!result.ok) {
-          this.sendError(connection, result.message ?? "Could not update topic.");
+          this.sendError(
+            connection,
+            result.message ?? "Could not update topic.",
+          );
           return;
         }
         await this.broadcastState();
@@ -197,12 +230,19 @@ export default class JeopromptyServer implements Party.Server {
       }
 
       case "submit_prompt": {
-        const submitter = this.findParticipantByConnection(state, connection.id);
+        const submitter = this.findParticipantByConnection(
+          state,
+          connection.id,
+        );
         if (!submitter) {
           this.sendError(connection, "Join the room before submitting.");
           return;
         }
-        const result = submitPrompt(state, submitter.sessionId, message.payload.prompt);
+        const result = submitPrompt(
+          state,
+          submitter.sessionId,
+          message.payload.prompt,
+        );
         if (!result.ok) {
           this.sendError(connection, result.message ?? "Submit failed.");
           return;
@@ -214,12 +254,17 @@ export default class JeopromptyServer implements Party.Server {
 
       case "request_advance": {
         const actor = this.findParticipantByConnection(state, connection.id);
-        const canProvideNextTarget =
-          Boolean(actor && actor.role === "player" && actor.sessionId === state.hostSessionId);
-        const nextTarget = canProvideNextTarget ? message.payload?.nextTarget : undefined;
+        const canProvideNextTarget = Boolean(
+          actor &&
+          actor.role === "player" &&
+          actor.sessionId === state.hostSessionId,
+        );
+        const nextTarget = canProvideNextTarget
+          ? message.payload?.nextTarget
+          : undefined;
         const advanced = this.maybeAdvanceState(state, {
           nextTarget,
-          allowRoundCompleteWithoutTarget: canProvideNextTarget
+          allowRoundCompleteWithoutTarget: canProvideNextTarget,
         });
         if (advanced) {
           await this.broadcastState();
@@ -239,9 +284,13 @@ export default class JeopromptyServer implements Party.Server {
           return;
         }
 
-        const submittedPlayers = new Set(state.submissions.map((submission) => submission.playerId));
+        const submittedPlayers = new Set(
+          state.submissions.map((submission) => submission.playerId),
+        );
         const promptsByPlayerId = new Map(
-          state.submissions.map((submission) => [submission.playerId, submission.prompt] as const)
+          state.submissions.map(
+            (submission) => [submission.playerId, submission.prompt] as const,
+          ),
         );
         const normalizedResults: ScoredSubmission[] = message.payload.results
           .filter((r) => submittedPlayers.has(r.playerId))
@@ -249,13 +298,20 @@ export default class JeopromptyServer implements Party.Server {
             const prompt = promptsByPlayerId.get(r.playerId) ?? r.prompt;
             return {
               ...r,
-              prompt
+              prompt,
             };
           });
 
-        const result = applyRoundResults(state, message.payload.roundId, normalizedResults);
+        const result = applyRoundResults(
+          state,
+          message.payload.roundId,
+          normalizedResults,
+        );
         if (!result.ok) {
-          this.sendError(connection, result.message ?? "Could not apply round results.");
+          this.sendError(
+            connection,
+            result.message ?? "Could not apply round results.",
+          );
           return;
         }
         await this.broadcastState();
@@ -285,8 +341,10 @@ export default class JeopromptyServer implements Party.Server {
         }
 
         const inLobby = state.phase === "lobby";
-        const isHost = actor.role === "player" && state.hostSessionId === actor.sessionId;
-        const shouldClearRoom = Boolean(message.payload?.clearRoom) && inLobby && isHost;
+        const isHost =
+          actor.role === "player" && state.hostSessionId === actor.sessionId;
+        const shouldClearRoom =
+          Boolean(message.payload?.clearRoom) && inLobby && isHost;
 
         if (shouldClearRoom) {
           clearRoomParticipants(state);

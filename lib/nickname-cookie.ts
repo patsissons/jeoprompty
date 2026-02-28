@@ -12,6 +12,6 @@ export function setNicknameCookie(nickname: string) {
   const normalized = normalizeNicknameCookie(nickname);
   if (!normalized) return;
   document.cookie = `${NICKNAME_COOKIE}=${encodeURIComponent(
-    normalized
+    normalized,
   )}; Path=/; Max-Age=${60 * 60 * 24 * 30}; SameSite=Lax`;
 }

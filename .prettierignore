@@ -1,0 +1,7 @@
+.next
+node_modules
+.partykit
+dist
+coverage
+pnpm-lock.yaml
+tsconfig.tsbuildinfo

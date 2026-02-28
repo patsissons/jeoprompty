@@ -3,7 +3,10 @@ let submitAudioContext: AudioContext | null = null;
 function getAudioContext() {
   if (typeof window === "undefined") return null;
   if (!submitAudioContext) {
-    const AudioContextCtor = window.AudioContext || (window as Window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+    const AudioContextCtor =
+      window.AudioContext ||
+      (window as Window & { webkitAudioContext?: typeof AudioContext })
+        .webkitAudioContext;
     if (!AudioContextCtor) return null;
     submitAudioContext = new AudioContextCtor();
   }
@@ -15,7 +18,7 @@ function playTone(
   frequency: number,
   startAt: number,
   duration: number,
-  gainPeak: number
+  gainPeak: number,
 ) {
   const oscillator = ctx.createOscillator();
   const gain = ctx.createGain();
@@ -50,9 +53,12 @@ export function playSubmitAudio() {
     const nextCtx = getAudioContext();
     if (!nextCtx) return;
     if (nextCtx.state === "suspended") {
-      void nextCtx.resume().then(() => schedule(nextCtx)).catch(() => {
-        // Ignore browser audio-context resume errors.
-      });
+      void nextCtx
+        .resume()
+        .then(() => schedule(nextCtx))
+        .catch(() => {
+          // Ignore browser audio-context resume errors.
+        });
       return;
     }
     schedule(nextCtx);
@@ -60,9 +66,12 @@ export function playSubmitAudio() {
   }
 
   if (ctx.state === "suspended") {
-    void ctx.resume().then(() => schedule(ctx)).catch(() => {
-      // Ignore browser audio-context resume errors.
-    });
+    void ctx
+      .resume()
+      .then(() => schedule(ctx))
+      .catch(() => {
+        // Ignore browser audio-context resume errors.
+      });
     return;
   }
 

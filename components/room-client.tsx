@@ -2,23 +2,41 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Copy, Loader2, RefreshCcw, Rocket, Timer, Users, Wifi } from "lucide-react";
+import {
+  Copy,
+  Loader2,
+  RefreshCcw,
+  Rocket,
+  Timer,
+  Users,
+  Wifi,
+} from "lucide-react";
 
 import { Leaderboard } from "@/components/leaderboard";
 import { RoundResults } from "@/components/round-results";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
 import { MAX_PROMPT_SECONDS } from "@/lib/game/constants";
 import {
   LEXICAL_SCORE_WEIGHT,
-  SEMANTIC_SCORE_WEIGHT
+  SEMANTIC_SCORE_WEIGHT,
 } from "@/lib/game/scoring";
 import { playIntroAudio } from "@/lib/intro-audio";
 import { playSubmitAudio } from "@/lib/submit-audio";
-import type { Participant, ScoreApiResponse, ScoredSubmission } from "@/lib/game/types";
+import type {
+  Participant,
+  ScoreApiResponse,
+  ScoredSubmission,
+} from "@/lib/game/types";
 import { setNicknameCookie } from "@/lib/nickname-cookie";
 import { setRoomCodeCookie } from "@/lib/room-code-cookie";
 import { useRoomConnection } from "@/lib/use-room-connection";
@@ -77,7 +95,7 @@ const NICKNAME_TAKEN_ERROR = "That nickname is already taken.";
 export function RoomClient({
   roomCode,
   watchMode,
-  initialNickname
+  initialNickname,
 }: {
   roomCode: string;
   watchMode: boolean;
@@ -90,11 +108,15 @@ export function RoomClient({
   const [topicDraft, setTopicDraft] = useState("");
   const [guestUrlCopied, setGuestUrlCopied] = useState(false);
   const [roomCodeCopied, setRoomCodeCopied] = useState(false);
-  const [pendingSubmittedRoundId, setPendingSubmittedRoundId] = useState<string | null>(null);
+  const [pendingSubmittedRoundId, setPendingSubmittedRoundId] = useState<
+    string | null
+  >(null);
   const [labTarget, setLabTarget] = useState<string | null>(null);
   const [labTargetError, setLabTargetError] = useState<string | null>(null);
   const [labTargetLoading, setLabTargetLoading] = useState(false);
-  const [labRunResult, setLabRunResult] = useState<ScoredSubmission | null>(null);
+  const [labRunResult, setLabRunResult] = useState<ScoredSubmission | null>(
+    null,
+  );
   const [labRunError, setLabRunError] = useState<string | null>(null);
   const [labRunLoading, setLabRunLoading] = useState(false);
   const [labUsedTargets, setLabUsedTargets] = useState<string[]>([]);
@@ -129,23 +151,31 @@ export function RoomClient({
     nickname: nickname.trim() || (watchMode ? "Guest Screen" : "Player"),
     role,
     sessionId: sessionId ?? "pending",
-    enabled: canJoin
+    enabled: canJoin,
   });
 
   const state = room.state;
   const currentRoundId = state?.currentRoundId ?? null;
   const participants = state?.participants ?? [];
-  const players = participants.filter((participant) => participant.role === "player");
+  const players = participants.filter(
+    (participant) => participant.role === "player",
+  );
 
   const me = useMemo(
-    () => state?.participants.find((participant) => participant.sessionId === sessionId) ?? null,
-    [state?.participants, sessionId]
+    () =>
+      state?.participants.find(
+        (participant) => participant.sessionId === sessionId,
+      ) ?? null,
+    [state?.participants, sessionId],
   );
   const isHost = Boolean(me && state?.hostSessionId === me.sessionId);
-  const canHostResetToLobby = isHost && !watchMode && (state?.phase ?? "lobby") !== "lobby";
+  const canHostResetToLobby =
+    isHost && !watchMode && (state?.phase ?? "lobby") !== "lobby";
   const submittedThisRound =
     Boolean(me?.submittedPrompt) ||
-    (state?.phase === "prompting" && Boolean(currentRoundId) && pendingSubmittedRoundId === currentRoundId);
+    (state?.phase === "prompting" &&
+      Boolean(currentRoundId) &&
+      pendingSubmittedRoundId === currentRoundId);
 
   const secondsRemaining = room.currentRoundSecondsRemaining;
 
@@ -158,10 +188,12 @@ export function RoomClient({
   const connectedPlayers = players.filter((player) => player.connected).length;
   const playerCount = players.length;
   const submittedCount = state?.submissions.length ?? 0;
-  const topicLoading = (state?.phase ?? "lobby") === "lobby" && !state?.gameTopic?.trim();
+  const topicLoading =
+    (state?.phase ?? "lobby") === "lobby" && !state?.gameTopic?.trim();
   const resolverName =
-    participants.find((participant) => participant.sessionId === state?.resolverSessionId)?.nickname ??
-    null;
+    participants.find(
+      (participant) => participant.sessionId === state?.resolverSessionId,
+    )?.nickname ?? null;
 
   const missingJoinInfo = !nickname.trim() || !sessionId;
 
@@ -188,7 +220,10 @@ export function RoomClient({
     const previousPhase = previousPhaseRef.current;
     const previousRoundId = previousRoundIdRef.current;
 
-    const enteredPrompting = previousPhase !== null && previousPhase !== "prompting" && phase === "prompting";
+    const enteredPrompting =
+      previousPhase !== null &&
+      previousPhase !== "prompting" &&
+      phase === "prompting";
     const roundChanged = Boolean(roundId && roundId !== previousRoundId);
     const switchedRoundsWhilePrompting =
       previousPhase !== null &&
@@ -250,7 +285,7 @@ export function RoomClient({
     const params = new URLSearchParams({
       room: roomCode.toUpperCase(),
       nick: nickname.trim(),
-      joinError: "nickname_taken"
+      joinError: "nickname_taken",
     });
 
     router.replace(`/?${params.toString()}`);
@@ -264,7 +299,9 @@ export function RoomClient({
   }
 
   function handleCopyRoomCode() {
-    navigator.clipboard.writeText(roomCode.toUpperCase()).catch(() => undefined);
+    navigator.clipboard
+      .writeText(roomCode.toUpperCase())
+      .catch(() => undefined);
     setRoomCodeCopied(true);
     window.setTimeout(() => setRoomCodeCopied(false), 1200);
   }
@@ -300,13 +337,15 @@ export function RoomClient({
           submissions: [
             {
               playerId: sessionId ?? "prompt-lab",
-              prompt: draftPrompt.trim().slice(0, 256)
-            }
-          ]
-        })
+              prompt: draftPrompt.trim().slice(0, 256),
+            },
+          ],
+        }),
       });
 
-      const payload = (await response.json()) as ScoreApiResponse & { error?: string };
+      const payload = (await response.json()) as ScoreApiResponse & {
+        error?: string;
+      };
       if (!response.ok) {
         throw new Error(payload.error || `API error ${response.status}`);
       }
@@ -318,7 +357,9 @@ export function RoomClient({
       setLabRunResult(result);
     } catch (error) {
       setLabRunResult(null);
-      setLabRunError(error instanceof Error ? error.message : "Prompt Lab run failed");
+      setLabRunError(
+        error instanceof Error ? error.message : "Prompt Lab run failed",
+      );
     } finally {
       setLabRunLoading(false);
     }
@@ -339,18 +380,24 @@ export function RoomClient({
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          topic: state?.gameTopic?.trim() || topicDraft.trim() || "expect the unexpected",
+          topic:
+            state?.gameTopic?.trim() ||
+            topicDraft.trim() ||
+            "expect the unexpected",
           usedTargets: Array.from(
             new Set([
               ...(state?.roundHistory.map((round) => round.target) ?? []),
               ...labUsedTargets,
-              ...(labTarget ? [labTarget] : [])
-            ])
-          )
-        })
+              ...(labTarget ? [labTarget] : []),
+            ]),
+          ),
+        }),
       });
 
-      const payload = (await response.json()) as { concept?: string; error?: string };
+      const payload = (await response.json()) as {
+        concept?: string;
+        error?: string;
+      };
       if (!response.ok) {
         throw new Error(payload.error || `API error ${response.status}`);
       }
@@ -361,9 +408,15 @@ export function RoomClient({
       }
 
       setLabTarget(nextTarget);
-      setLabUsedTargets((previous) => Array.from(new Set([...previous, nextTarget])));
+      setLabUsedTargets((previous) =>
+        Array.from(new Set([...previous, nextTarget])),
+      );
     } catch (error) {
-      setLabTargetError(error instanceof Error ? error.message : "Prompt Lab target generation failed");
+      setLabTargetError(
+        error instanceof Error
+          ? error.message
+          : "Prompt Lab target generation failed",
+      );
     } finally {
       setLabTargetLoading(false);
     }
@@ -375,7 +428,15 @@ export function RoomClient({
     if (topicLoading) return;
     if (labTarget || labTargetLoading) return;
     void handleGeneratePromptLabTarget();
-  }, [watchMode, state?.phase, state?.createdAt, state?.roundIndex, topicLoading, labTarget, labTargetLoading]);
+  }, [
+    watchMode,
+    state?.phase,
+    state?.createdAt,
+    state?.roundIndex,
+    topicLoading,
+    labTarget,
+    labTargetLoading,
+  ]);
 
   useEffect(() => {
     if ((state?.phase ?? "lobby") !== "lobby") return;
@@ -442,7 +503,10 @@ export function RoomClient({
               onChange={(event) => setNickname(event.target.value)}
               maxLength={24}
             />
-            <Button onClick={() => setSessionId(getOrCreateTabSessionId())} disabled={!nickname.trim()}>
+            <Button
+              onClick={() => setSessionId(getOrCreateTabSessionId())}
+              disabled={!nickname.trim()}
+            >
               Continue
             </Button>
           </CardContent>
@@ -470,7 +534,9 @@ export function RoomClient({
                       Room {roomCode.toUpperCase()}
                       <Copy className="h-4 w-4" />
                       {roomCodeCopied ? (
-                        <span className="text-xs font-medium text-cyan-200">Copied</span>
+                        <span className="text-xs font-medium text-cyan-200">
+                          Copied
+                        </span>
                       ) : null}
                     </Button>
                     <Badge variant={watchMode ? "secondary" : "default"}>
@@ -478,11 +544,16 @@ export function RoomClient({
                     </Badge>
                   </div>
                   <CardDescription className="mt-1">
-                    {watchMode ? "Spectator board" : `Playing as ${nickname.trim()}`}
+                    {watchMode
+                      ? "Spectator board"
+                      : `Playing as ${nickname.trim()}`}
                   </CardDescription>
                 </div>
                 <div className="flex flex-wrap items-center gap-2">
-                  <Badge variant={statusTone(room.connectionStatus) as any} className="gap-1">
+                  <Badge
+                    variant={statusTone(room.connectionStatus) as any}
+                    className="gap-1"
+                  >
                     <Wifi className="h-3 w-3" />
                     {room.connectionStatus}
                   </Badge>
@@ -498,16 +569,30 @@ export function RoomClient({
                       ) : (
                         <Rocket className="h-3.5 w-3.5" />
                       )}
-                      {startGameLoading ? "Starting..." : topicLoading ? "Loading topic..." : "Start Game"}
+                      {startGameLoading
+                        ? "Starting..."
+                        : topicLoading
+                          ? "Loading topic..."
+                          : "Start Game"}
                     </Button>
                   ) : null}
                   {canHostResetToLobby ? (
-                    <Button variant="destructive" size="sm" onClick={handleResetToLobby} className="gap-2">
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      onClick={handleResetToLobby}
+                      className="gap-2"
+                    >
                       <RefreshCcw className="h-3.5 w-3.5" />
                       Reset to Lobby
                     </Button>
                   ) : null}
-                  <Button variant="outline" size="sm" onClick={handleCopyGuestUrl} className="gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleCopyGuestUrl}
+                    className="gap-2"
+                  >
                     <Copy className="h-3.5 w-3.5" />
                     {guestUrlCopied ? "Copied" : "Guest URL"}
                   </Button>
@@ -525,24 +610,34 @@ export function RoomClient({
             <CardContent className="space-y-4">
               <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
                 <div className="rounded-xl border border-white/10 bg-white/5 p-3">
-                  <div className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Phase</div>
-                  <div className="mt-1 text-lg font-semibold">{phaseLabel(state?.phase ?? "lobby")}</div>
+                  <div className="text-xs uppercase tracking-[0.2em] text-muted-foreground">
+                    Phase
+                  </div>
+                  <div className="mt-1 text-lg font-semibold">
+                    {phaseLabel(state?.phase ?? "lobby")}
+                  </div>
                 </div>
                 <div className="rounded-xl border border-white/10 bg-white/5 p-3">
-                  <div className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Round</div>
+                  <div className="text-xs uppercase tracking-[0.2em] text-muted-foreground">
+                    Round
+                  </div>
                   <div className="mt-1 text-lg font-semibold">
                     {state?.roundIndex ?? 0}/{state?.totalRounds ?? 10}
                   </div>
                 </div>
                 <div className="rounded-xl border border-white/10 bg-white/5 p-3">
-                  <div className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Players</div>
+                  <div className="text-xs uppercase tracking-[0.2em] text-muted-foreground">
+                    Players
+                  </div>
                   <div className="mt-1 flex items-center gap-2 text-lg font-semibold">
                     <Users className="h-4 w-4 text-cyan-200" />
                     {connectedPlayers}
                   </div>
                 </div>
                 <div className="rounded-xl border border-white/10 bg-white/5 p-3">
-                  <div className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Timer</div>
+                  <div className="text-xs uppercase tracking-[0.2em] text-muted-foreground">
+                    Timer
+                  </div>
                   <div className="mt-1 flex items-center gap-2 font-mono text-lg font-semibold">
                     <Timer className="h-4 w-4 text-orange-200" />
                     {formatSeconds(secondsRemaining)}
@@ -614,7 +709,9 @@ export function RoomClient({
           <Leaderboard
             participants={state?.participants ?? []}
             hostSessionId={state?.hostSessionId}
-            highlightSessionId={watchMode ? undefined : sessionId ?? undefined}
+            highlightSessionId={
+              watchMode ? undefined : (sessionId ?? undefined)
+            }
             title={watchMode ? "Live Leaderboard" : "Room Leaderboard"}
             topic={state?.gameTopic ?? null}
             topicLoading={topicLoading}
@@ -630,23 +727,25 @@ export function RoomClient({
               </CardHeader>
               <CardContent className="space-y-2">
                 {players.map((player) => (
-                    <div
-                      key={player.sessionId}
-                      className="flex items-center justify-between rounded-xl border border-white/10 bg-white/5 px-3 py-2"
+                  <div
+                    key={player.sessionId}
+                    className="flex items-center justify-between rounded-xl border border-white/10 bg-white/5 px-3 py-2"
+                  >
+                    <span className="truncate text-sm">
+                      {player.sessionId === state?.hostSessionId ? (
+                        <span className="mr-1" role="img" aria-label="Host">
+                          👑
+                        </span>
+                      ) : null}
+                      {player.nickname}
+                    </span>
+                    <Badge
+                      variant={player.submittedPrompt ? "success" : "warning"}
                     >
-                      <span className="truncate text-sm">
-                        {player.sessionId === state?.hostSessionId ? (
-                          <span className="mr-1" role="img" aria-label="Host">
-                            👑
-                          </span>
-                        ) : null}
-                        {player.nickname}
-                      </span>
-                      <Badge variant={player.submittedPrompt ? "success" : "warning"}>
-                        {player.submittedPrompt ? "Submitted" : "Pending"}
-                      </Badge>
-                    </div>
-                  ))}
+                      {player.submittedPrompt ? "Submitted" : "Pending"}
+                    </Badge>
+                  </div>
+                ))}
               </CardContent>
             </Card>
           ) : (
@@ -656,8 +755,14 @@ export function RoomClient({
               </CardHeader>
               <CardContent className="space-y-2 text-sm text-muted-foreground">
                 <p>1. Direct match to the target gets max points.</p>
-                <p>2. Otherwise semantic similarity + algorithmic closeness are combined.</p>
-                <p>3. Prompts must start with who/what/when/where/why, and cheating prompts are rejected.</p>
+                <p>
+                  2. Otherwise semantic similarity + algorithmic closeness are
+                  combined.
+                </p>
+                <p>
+                  3. Prompts must start with who/what/when/where/why, and
+                  cheating prompts are rejected.
+                </p>
               </CardContent>
             </Card>
           )}
@@ -691,7 +796,7 @@ function PlayerPanel({
   onGenerateLabTarget,
   labRunResult,
   labRunError,
-  labRunLoading
+  labRunLoading,
 }: {
   onReset: () => void;
   canReset: boolean;
@@ -720,13 +825,15 @@ function PlayerPanel({
 }) {
   const inLobby = statePhase === "lobby";
   const canEditPrompt = inLobby || (statePhase === "prompting" && !submitted);
-  const labTargetWordCount = labTarget?.trim() ? labTarget.trim().split(/\s+/).length : 0;
+  const labTargetWordCount = labTarget?.trim()
+    ? labTarget.trim().split(/\s+/).length
+    : 0;
   const weightedScore =
     labRunResult && !labRunResult.rejected && !labRunResult.exactMatch
       ? Math.round(
           (labRunResult.semanticScore * SEMANTIC_SCORE_WEIGHT +
             labRunResult.lexicalScore * LEXICAL_SCORE_WEIGHT) *
-            100
+            100,
         )
       : null;
 
@@ -735,14 +842,16 @@ function PlayerPanel({
       <CardHeader>
         <CardTitle className="text-lg">Player Console</CardTitle>
         <CardDescription>
-        {statePhase === "prompting" ? (
-          <div className="space-y-2">
-            <div className="grid grid-cols-[1fr_auto] items-center gap-2 text-xs text-muted-foreground">
-              <Progress value={progressPct} />
-              <span>{secondsRemaining}s</span>
+          {statePhase === "prompting" ? (
+            <div className="space-y-2">
+              <div className="grid grid-cols-[1fr_auto] items-center gap-2 text-xs text-muted-foreground">
+                <Progress value={progressPct} />
+                <span>{secondsRemaining}s</span>
+              </div>
             </div>
-          </div>
-        ) : myStatus}
+          ) : (
+            myStatus
+          )}
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -754,14 +863,19 @@ function PlayerPanel({
             <Input
               value={topicDraft}
               onChange={(event) => setTopicDraft(event.target.value)}
-              placeholder={topicLoading ? "Loading topic..." : "Topic for this game"}
+              placeholder={
+                topicLoading ? "Loading topic..." : "Topic for this game"
+              }
               maxLength={80}
             />
             {topicLoading ? (
-              <p className="text-xs animate-pulse text-cyan-200">Loading topic...</p>
+              <p className="text-xs animate-pulse text-cyan-200">
+                Loading topic...
+              </p>
             ) : null}
             <p className="text-xs text-muted-foreground">
-              All round targets will be chosen to match this topic when possible.
+              All round targets will be chosen to match this topic when
+              possible.
             </p>
           </div>
         ) : null}
@@ -779,13 +893,18 @@ function PlayerPanel({
           <div className="rounded-xl border border-cyan-300/20 bg-cyan-300/5 p-3">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
-                <div className="text-xs uppercase tracking-[0.2em] text-cyan-100/80">Prompt Lab</div>
+                <div className="text-xs uppercase tracking-[0.2em] text-cyan-100/80">
+                  Prompt Lab
+                </div>
                 <p className="mt-1 text-xs text-muted-foreground">
-                  Test prompts against a generated target and inspect the real score breakdown.
+                  Test prompts against a generated target and inspect the real
+                  score breakdown.
                 </p>
               </div>
               <div className="flex items-center gap-2">
-                <Badge className="text-nowrap" variant="secondary">{labTargetWordCount || "?"} words</Badge>
+                <Badge className="text-nowrap" variant="secondary">
+                  {labTargetWordCount || "?"} words
+                </Badge>
                 <Button
                   type="button"
                   size="sm"
@@ -794,7 +913,11 @@ function PlayerPanel({
                   disabled={topicLoading || labTargetLoading}
                   className="gap-2"
                 >
-                  {labTargetLoading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCcw className="h-3.5 w-3.5" />}
+                  {labTargetLoading ? (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  ) : (
+                    <RefreshCcw className="h-3.5 w-3.5" />
+                  )}
                   New Target
                 </Button>
               </div>
@@ -817,11 +940,14 @@ function PlayerPanel({
                   <div className="text-[10px] uppercase tracking-[0.18em] text-cyan-100/70">
                     Prompt Lab target
                   </div>
-                  <div className="mt-1 text-base font-semibold text-cyan-50">{labTarget}</div>
+                  <div className="mt-1 text-base font-semibold text-cyan-50">
+                    {labTarget}
+                  </div>
                 </>
               ) : (
                 <p className="text-sm text-muted-foreground">
-                  Generate a target, enter a question prompt (who/what/when/where/why) below, then click Test Prompt.
+                  Generate a target, enter a question prompt
+                  (who/what/when/where/why) below, then click Test Prompt.
                 </p>
               )}
             </div>
@@ -850,7 +976,9 @@ function PlayerPanel({
                       </div>
                     </div>
                     <div className="text-right">
-                      <div className="font-mono text-lg font-semibold">{labRunResult.scoreDelta}</div>
+                      <div className="font-mono text-lg font-semibold">
+                        {labRunResult.scoreDelta}
+                      </div>
                       <div className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
                         points
                       </div>
@@ -858,28 +986,36 @@ function PlayerPanel({
                   </div>
                   {labRunResult.rejected ? (
                     <p className="text-xs text-rose-200">
-                      Rejected: {labRunResult.rejectionReason ?? "Prompt violates prompt rules."}
+                      Rejected:{" "}
+                      {labRunResult.rejectionReason ??
+                        "Prompt violates prompt rules."}
                     </p>
                   ) : (
                     <div className="grid gap-2 text-xs text-muted-foreground sm:grid-cols-2">
                       <div className="rounded-md border border-white/10 bg-black/10 p-2">
-                        Exact match: {labRunResult.exactMatch ? "yes (100 points override)" : "no"}
+                        Exact match:{" "}
+                        {labRunResult.exactMatch
+                          ? "yes (100 points override)"
+                          : "no"}
                       </div>
                       <div className="rounded-md border border-white/10 bg-black/10 p-2">
-                        Semantic: {(labRunResult.semanticScore * 100).toFixed(1)}% (
+                        Semantic:{" "}
+                        {(labRunResult.semanticScore * 100).toFixed(1)}% (
                         {labRunResult.semanticScore.toFixed(3)})
                       </div>
                       <div className="rounded-md border border-white/10 bg-black/10 p-2">
-                        Lexical: {(labRunResult.lexicalScore * 100).toFixed(1)}% (
-                        {labRunResult.lexicalScore.toFixed(3)})
+                        Lexical: {(labRunResult.lexicalScore * 100).toFixed(1)}%
+                        ({labRunResult.lexicalScore.toFixed(3)})
                       </div>
                       <div className="rounded-md border border-white/10 bg-black/10 p-2">
                         Blend: 70% semantic + 30% lexical
                       </div>
                       {!labRunResult.exactMatch ? (
                         <div className="rounded-md border border-white/10 bg-black/10 p-2 sm:col-span-2">
-                          Math: round(((0.7 x {labRunResult.semanticScore.toFixed(3)}) + (0.3 x{" "}
-                          {labRunResult.lexicalScore.toFixed(3)})) x 100) = {weightedScore}
+                          Math: round(((0.7 x{" "}
+                          {labRunResult.semanticScore.toFixed(3)}) + (0.3 x{" "}
+                          {labRunResult.lexicalScore.toFixed(3)})) x 100) ={" "}
+                          {weightedScore}
                         </div>
                       ) : null}
                     </div>
@@ -887,7 +1023,8 @@ function PlayerPanel({
                 </div>
               ) : (
                 <p className="text-sm text-muted-foreground">
-                  Run a prompt to see the answer, final score, and scoring components.
+                  Run a prompt to see the answer, final score, and scoring
+                  components.
                 </p>
               )}
             </div>
@@ -902,10 +1039,19 @@ function PlayerPanel({
             className="min-h-28 w-full rounded-xl border border-white/10 bg-white/5 p-3 text-base sm:text-sm outline-none ring-0 placeholder:text-muted-foreground/40 focus:border-cyan-300/40"
             placeholder="What famous structure can be seen from space?"
             value={draftPrompt}
-            onChange={(event) => setDraftPrompt(event.target.value.slice(0, 256))}
+            onChange={(event) =>
+              setDraftPrompt(event.target.value.slice(0, 256))
+            }
             onKeyDown={(event) => {
-              const isSubmitKey = event.key === "Enter" || event.key === "NumpadEnter";
-              if (!isSubmitKey || event.shiftKey || event.repeat || event.nativeEvent.isComposing) return;
+              const isSubmitKey =
+                event.key === "Enter" || event.key === "NumpadEnter";
+              if (
+                !isSubmitKey ||
+                event.shiftKey ||
+                event.repeat ||
+                event.nativeEvent.isComposing
+              )
+                return;
               event.preventDefault();
               if (inLobby && draftPrompt.trim()) {
                 onPreview();
@@ -921,13 +1067,22 @@ function PlayerPanel({
           {inLobby ? (
             <>
               <div className="flex items-center justify-between gap-3">
-                <span className="text-xs text-muted-foreground">{draftPrompt.length}/256</span>
+                <span className="text-xs text-muted-foreground">
+                  {draftPrompt.length}/256
+                </span>
                 <Button
                   onClick={onPreview}
-                  disabled={topicLoading || !draftPrompt.trim() || labRunLoading || !labTarget}
+                  disabled={
+                    topicLoading ||
+                    !draftPrompt.trim() ||
+                    labRunLoading ||
+                    !labTarget
+                  }
                   className="gap-2"
                 >
-                  {labRunLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+                  {labRunLoading ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : null}
                   Test Prompt
                 </Button>
               </div>
@@ -935,8 +1090,13 @@ function PlayerPanel({
           ) : (
             <>
               <div className="flex items-center justify-between gap-3">
-                <span className="text-xs text-muted-foreground">{draftPrompt.length}/256</span>
-                <Button onClick={onSubmit} disabled={!canEditPrompt || !draftPrompt.trim()}>
+                <span className="text-xs text-muted-foreground">
+                  {draftPrompt.length}/256
+                </span>
+                <Button
+                  onClick={onSubmit}
+                  disabled={!canEditPrompt || !draftPrompt.trim()}
+                >
                   {submitted ? "Submitted" : "Submit Prompt"}
                 </Button>
               </div>
@@ -945,7 +1105,8 @@ function PlayerPanel({
         </div>
 
         <div className="rounded-xl border border-white/10 bg-white/5 p-3 text-xs text-muted-foreground/40">
-          Prompt rules: start with who/what/when/where/why; max 256 chars; no target leakage or spelling hints.
+          Prompt rules: start with who/what/when/where/why; max 256 chars; no
+          target leakage or spelling hints.
         </div>
       </CardContent>
     </Card>
@@ -956,7 +1117,7 @@ function GuestBoard({
   statePhase,
   playerCount,
   submittedCount,
-  resolverName
+  resolverName,
 }: {
   statePhase: string;
   playerCount: number;
@@ -973,17 +1134,25 @@ function GuestBoard({
       </CardHeader>
       <CardContent className="grid gap-3 sm:grid-cols-2">
         <div className="rounded-xl border border-white/10 bg-white/5 p-4">
-          <div className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Phase</div>
-          <div className="mt-2 text-2xl font-semibold">{phaseLabel(statePhase)}</div>
+          <div className="text-xs uppercase tracking-[0.2em] text-muted-foreground">
+            Phase
+          </div>
+          <div className="mt-2 text-2xl font-semibold">
+            {phaseLabel(statePhase)}
+          </div>
         </div>
         <div className="rounded-xl border border-white/10 bg-white/5 p-4">
-          <div className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Prompts In</div>
+          <div className="text-xs uppercase tracking-[0.2em] text-muted-foreground">
+            Prompts In
+          </div>
           <div className="mt-2 text-2xl font-semibold">
             {submittedCount}/{playerCount}
           </div>
         </div>
         <div className="rounded-xl border border-white/10 bg-white/5 p-4 sm:col-span-2">
-          <div className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Resolver</div>
+          <div className="text-xs uppercase tracking-[0.2em] text-muted-foreground">
+            Resolver
+          </div>
           <div className="mt-2 text-base text-muted-foreground">
             {statePhase === "resolving"
               ? resolverName

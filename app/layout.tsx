@@ -23,7 +23,7 @@ export const metadata: Metadata = {
   metadataBase: getSiteUrl(),
   title: {
     default: siteTitle,
-    template: "%s | Jeoprompty!"
+    template: "%s | Jeoprompty!",
   },
   description: siteDescription,
   applicationName: "Jeoprompty!",
@@ -33,10 +33,10 @@ export const metadata: Metadata = {
     "prompt game",
     "multiplayer trivia",
     "party trivia",
-    "Jeoprompty"
+    "Jeoprompty",
   ],
   alternates: {
-    canonical: "/"
+    canonical: "/",
   },
   openGraph: {
     type: "website",
@@ -50,15 +50,15 @@ export const metadata: Metadata = {
         url: "/opengraph-image",
         width: 1200,
         height: 630,
-        alt: "Jeoprompty game board preview with Play Jeoprompty button"
-      }
-    ]
+        alt: "Jeoprompty game board preview with Play Jeoprompty button",
+      },
+    ],
   },
   twitter: {
     card: "summary_large_image",
     title: siteTitle,
     description: siteDescription,
-    images: ["/opengraph-image"]
+    images: ["/opengraph-image"],
   },
   robots: {
     index: true,
@@ -68,21 +68,21 @@ export const metadata: Metadata = {
       follow: true,
       "max-image-preview": "large",
       "max-snippet": -1,
-      "max-video-preview": -1
-    }
+      "max-video-preview": -1,
+    },
   },
   category: "games",
-  referrer: "origin-when-cross-origin"
+  referrer: "origin-when-cross-origin",
 };
 
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
-  viewportFit: "cover"
+  viewportFit: "cover",
 };
 
 export default function RootLayout({
-  children
+  children,
 }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en">

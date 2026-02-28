@@ -17,5 +17,8 @@ export function formatSeconds(seconds: number) {
 }
 
 export function safeUpperRoomCode(value: string) {
-  return value.replace(/[^a-z0-9]/gi, "").slice(0, 8).toUpperCase();
+  return value
+    .replace(/[^a-z0-9]/gi, "")
+    .slice(0, 8)
+    .toUpperCase();
 }
