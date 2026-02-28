@@ -7,6 +7,7 @@ import { Play, RotateCcw, Tv2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { playIntroAudio } from "@/lib/intro-audio";
 import { NICKNAME_COOKIE, setNicknameCookie } from "@/lib/nickname-cookie";
 import { normalizeRoomCodeCookie, ROOM_CODE_COOKIE, setRoomCodeCookie } from "@/lib/room-code-cookie";
 import { safeUpperRoomCode } from "@/lib/utils";
@@ -175,7 +176,10 @@ export function LandingForm({
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <Button
             size="lg"
-            onClick={() => handleJoin("player")}
+            onClick={() => {
+              playIntroAudio();
+              handleJoin("player");
+            }}
             disabled={!canJoin}
             className="gap-2"
           >
@@ -185,7 +189,10 @@ export function LandingForm({
           <Button
             size="lg"
             variant="secondary"
-            onClick={() => handleJoin("guest")}
+            onClick={() => {
+              playIntroAudio();
+              handleJoin("guest");
+            }}
             disabled={!canJoin}
             className="gap-2"
           >
