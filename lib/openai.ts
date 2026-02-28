@@ -89,35 +89,89 @@ export async function generateResponseText({
 
 
 export async function generateConciseAnswer(prompt: string, words: number) {
-  const promptWords = prompt
-    .split(" ")
-    .map(word => word.replace(/[^a-zA-Z0-9]/g, "").trim())
-    .map(word => word.toLowerCase())
-    .filter(word => word.length > 2)
+  const normalizedPromptWords = prompt
+    .split(/\s+/)
+    .map((word) => word.replace(/[^a-zA-Z0-9]/g, "").trim().toLowerCase())
+    .filter((word) => word.length > 2);
+  const promptWordSet = new Set(normalizedPromptWords);
 
-  const systemPrompt = [
-    "Answer must be concise and specific.",
-    `Answer must be exactly ${words} words in length.`,
-    `Answer cannot contain any of the following words: ${promptWords.join(", ")}.`,
-  ].join(" ")
-  const promptWordSet = new Set(promptWords);
-  let answer = "";
-  for (let i = 0; i < 10; i++) {
-    answer = await generateResponseText({
-      systemPrompt,
-      userPrompt: prompt,
-    });
-    const answerWords = answer
-      .split(" ")
-      .map(word => word.replace(/[^a-zA-Z0-9]/g, "").trim())
-      .map(word => word.toLowerCase())
-      .filter(Boolean);
+  const NON_ANSWER_PATTERNS = [
+    /\b(i|we)\s+(cannot|can't|can not|won't|will not|am unable|are unable)\b/i,
+    /\b(as an ai|as a language model)\b/i,
+    /\b(i'm sorry|sorry)\b/i,
+    /\b(cannot provide|can't provide|unable to provide)\b/i,
+    /\b(prohibited|restricted|not allowed|policy)\b/i,
+    /\b(i do not|i don't)\s+(know|have enough|have sufficient)\b/i
+  ];
 
-    if (!answerWords.some(word => promptWordSet.has(word))) {
-      break
-    }
+  function cleanAnswer(text: string) {
+    return text.replace(/\s+/g, " ").trim().replace(/^["'`]+|["'`]+$/g, "");
   }
-  return answer;
+
+  function answerWords(text: string) {
+    return text
+      .split(/\s+/)
+      .map((word) => word.replace(/[^a-zA-Z0-9]/g, "").trim().toLowerCase())
+      .filter(Boolean);
+  }
+
+  function validateAnswer(text: string, attempt: number) {
+    const cleaned = cleanAnswer(text);
+    if (!cleaned) return { ok: false as const, reason: "empty answer" };
+    if (NON_ANSWER_PATTERNS.some((pattern) => pattern.test(cleaned))) {
+      return { ok: false as const, reason: "non-answer refusal language" };
+    }
+
+    const tokens = answerWords(cleaned);
+    if (tokens.length !== words) {
+      return { ok: false as const, reason: `wrong word count (${tokens.length} != ${words})` };
+    }
+
+    // Keep anti-echo checks strict early, then relax so we still get a direct answer.
+    if (attempt <= 3 && tokens.some((word) => promptWordSet.has(word))) {
+      return { ok: false as const, reason: "echoed prompt words" };
+    }
+
+    return { ok: true as const, answer: cleaned };
+  }
+
+  const maxAttempts = 8;
+  let lastFailure = "unknown";
+
+  for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+    const systemPromptParts = [
+      "You are answering a trivia-style question with a direct factual answer.",
+      `Return exactly ${words} words.`,
+      "Output only the answer text.",
+      "Do not output prefaces, explanations, apologies, refusals, or policy text.",
+      "If wording constraints conflict, rewrite with close synonyms and still answer directly."
+    ];
+
+    if (normalizedPromptWords.length > 0) {
+      systemPromptParts.push(
+        `Avoid reusing these prompt words when possible: ${normalizedPromptWords.join(", ")}.`
+      );
+    }
+    if (attempt > 1) {
+      systemPromptParts.push(
+        `Previous output failed validation (${lastFailure}). Fix that and return only the final answer.`
+      );
+    }
+
+    const answer = await generateResponseText({
+      systemPrompt: systemPromptParts.join(" "),
+      userPrompt: prompt,
+      maxOutputTokens: Math.max(24, words * 8)
+    });
+
+    const validation = validateAnswer(answer, attempt);
+    if (validation.ok) {
+      return validation.answer;
+    }
+    lastFailure = validation.reason;
+  }
+
+  throw new Error(`Could not generate a valid direct answer after ${maxAttempts} attempts (${lastFailure}).`);
 }
 
 type EmbeddingPayload = {
