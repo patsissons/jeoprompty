@@ -27,7 +27,7 @@ async function openAiGenerateOneLine(
   });
 }
 
-const defaultFallbackTopic = "expect the unexpected";
+export const DEFAULT_FALLBACK_TOPIC = "expect the unexpected";
 
 export async function generateCreativeTopic() {
   try {
@@ -45,10 +45,10 @@ export async function generateCreativeTopic() {
     );
 
     const topic = sanitizeSingleLineText(raw, 120);
-    return topic || defaultFallbackTopic;
+    return topic || DEFAULT_FALLBACK_TOPIC;
   } catch (error) {
     console.error("generateCreativeTopic", error);
-    return defaultFallbackTopic;
+    return DEFAULT_FALLBACK_TOPIC;
   }
 }
 
@@ -69,7 +69,7 @@ export async function generateCreativeConcept({
         "Output only the concept text. No quotes. No numbering. No explanation."
       ].join(" "),
       [
-        `Topic: ${topic?.trim() || defaultFallbackTopic}`,
+        `Topic: ${topic?.trim() || DEFAULT_FALLBACK_TOPIC}`,
         `Avoid these previous targets: ${used.slice(-20).join(" | ") || "none"}`,
         `Be original and varied (nonce: ${randomNonce()}).`,
         "Aim for 3-8 words. Avoid punctuation.",

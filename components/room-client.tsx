@@ -16,6 +16,7 @@ import {
   LEXICAL_SCORE_WEIGHT,
   SEMANTIC_SCORE_WEIGHT
 } from "@/lib/game/scoring";
+import { playIntroAudio } from "@/lib/intro-audio";
 import type { Participant, ScoreApiResponse, ScoredSubmission } from "@/lib/game/types";
 import { setNicknameCookie } from "@/lib/nickname-cookie";
 import { setRoomCodeCookie } from "@/lib/room-code-cookie";
@@ -99,6 +100,8 @@ export function RoomClient({
   const [startGameLoading, setStartGameLoading] = useState(false);
   const [exitLoading, setExitLoading] = useState(false);
   const hasJoinedRoomRef = useRef(false);
+  const previousPhaseRef = useRef<string | null>(null);
+  const previousRoundIdRef = useRef<string | null>(null);
 
   useEffect(() => {
     setSessionId(getOrCreateTabSessionId());
@@ -176,6 +179,28 @@ export function RoomClient({
     setDraftPrompt("");
     setPendingSubmittedRoundId(null);
   }, [currentRoundId]);
+
+  useEffect(() => {
+    const phase = state?.phase ?? null;
+    const roundId = currentRoundId ?? null;
+    const previousPhase = previousPhaseRef.current;
+    const previousRoundId = previousRoundIdRef.current;
+
+    const enteredPrompting = previousPhase !== null && previousPhase !== "prompting" && phase === "prompting";
+    const roundChanged = Boolean(roundId && roundId !== previousRoundId);
+    const switchedRoundsWhilePrompting =
+      previousPhase !== null &&
+      previousPhase === "prompting" &&
+      phase === "prompting" &&
+      roundChanged;
+
+    if ((enteredPrompting && roundChanged) || switchedRoundsWhilePrompting) {
+      playIntroAudio();
+    }
+
+    previousPhaseRef.current = phase;
+    previousRoundIdRef.current = roundId;
+  }, [currentRoundId, state?.phase]);
 
   useEffect(() => {
     if ((state?.phase ?? "lobby") !== "lobby") {
