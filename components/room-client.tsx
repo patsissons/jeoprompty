@@ -326,8 +326,10 @@ export function RoomClient({
 
   async function handleGeneratePromptLabTarget() {
     if ((state?.phase ?? "lobby") !== "lobby") return;
+    if (topicLoading) return;
 
     setLabTargetLoading(true);
+    setLabTarget(null);
     setLabTargetError(null);
     setLabRunResult(null);
     setLabRunError(null);
@@ -370,9 +372,19 @@ export function RoomClient({
   useEffect(() => {
     if (watchMode) return;
     if ((state?.phase ?? "lobby") !== "lobby") return;
+    if (topicLoading) return;
     if (labTarget || labTargetLoading) return;
     void handleGeneratePromptLabTarget();
-  }, [watchMode, state?.phase, state?.createdAt, state?.roundIndex, labTarget, labTargetLoading]);
+  }, [watchMode, state?.phase, state?.createdAt, state?.roundIndex, topicLoading, labTarget, labTargetLoading]);
+
+  useEffect(() => {
+    if ((state?.phase ?? "lobby") !== "lobby") return;
+    if (!topicLoading) return;
+    setLabTarget(null);
+    setLabTargetError(null);
+    setLabRunResult(null);
+    setLabRunError(null);
+  }, [state?.phase, topicLoading]);
 
   function handleTopicDraftChange(value: string) {
     const next = value.slice(0, 80);
@@ -779,7 +791,7 @@ function PlayerPanel({
                   size="sm"
                   variant="outline"
                   onClick={onGenerateLabTarget}
-                  disabled={labTargetLoading}
+                  disabled={topicLoading || labTargetLoading}
                   className="gap-2"
                 >
                   {labTargetLoading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCcw className="h-3.5 w-3.5" />}
@@ -788,7 +800,12 @@ function PlayerPanel({
               </div>
             </div>
             <div className="mt-3 rounded-lg border border-white/10 bg-white/5 p-3">
-              {labTargetLoading && !labTarget ? (
+              {topicLoading ? (
+                <div className="flex items-center gap-2 text-sm text-cyan-100 animate-pulse">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Loading topic...
+                </div>
+              ) : labTargetLoading && !labTarget ? (
                 <div className="flex items-center gap-2 text-sm text-cyan-100">
                   <Loader2 className="h-4 w-4 animate-spin" />
                   Generating target...
@@ -907,7 +924,7 @@ function PlayerPanel({
                 <span className="text-xs text-muted-foreground">{draftPrompt.length}/256</span>
                 <Button
                   onClick={onPreview}
-                  disabled={!draftPrompt.trim() || labRunLoading || !labTarget}
+                  disabled={topicLoading || !draftPrompt.trim() || labRunLoading || !labTarget}
                   className="gap-2"
                 >
                   {labRunLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
