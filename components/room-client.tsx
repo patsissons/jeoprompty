@@ -871,7 +871,8 @@ function PlayerPanel({
             value={draftPrompt}
             onChange={(event) => setDraftPrompt(event.target.value.slice(0, 256))}
             onKeyDown={(event) => {
-              if (event.key !== "Enter" || event.shiftKey || event.nativeEvent.isComposing) return;
+              const isSubmitKey = event.key === "Enter" || event.key === "NumpadEnter";
+              if (!isSubmitKey || event.shiftKey || event.repeat || event.nativeEvent.isComposing) return;
               event.preventDefault();
               if (inLobby && draftPrompt.trim()) {
                 onPreview();
