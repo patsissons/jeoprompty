@@ -31,6 +31,7 @@ export function useRoomConnection({
   const resolvingRoundRef = useRef<string | null>(null);
   const advancingRoundRef = useRef<string | null>(null);
   const generatedLobbyTopicKeyRef = useRef<string | null>(null);
+  const topicHistoryRef = useRef<string[]>([]);
   const stateRef = useRef<RoomState | null>(null);
   const [nowMs, setNowMs] = useState(() => Date.now());
 
@@ -43,9 +44,11 @@ export function useRoomConnection({
     socket.send(JSON.stringify(message));
   };
 
-  async function fetchGeneratedTopic() {
+  async function fetchGeneratedTopic(input?: { usedTopics?: string[] }) {
     const response = await fetch("/api/game/topic", {
-      method: "POST"
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ usedTopics: input?.usedTopics ?? [] })
     });
     if (!response.ok) {
       const body = await response.text();
@@ -126,6 +129,15 @@ export function useRoomConnection({
   }, [state]);
 
   useEffect(() => {
+    const topic = state?.gameTopic?.trim();
+    if (!topic) return;
+    if (topicHistoryRef.current.some((item) => item.toLowerCase() === topic.toLowerCase())) {
+      return;
+    }
+    topicHistoryRef.current = [...topicHistoryRef.current.slice(-19), topic];
+  }, [state?.gameTopic]);
+
+  useEffect(() => {
     if (!enabled) return;
     if (connectionStatus !== "open") return;
     setNicknameCookie(nickname);
@@ -196,7 +208,9 @@ export function useRoomConnection({
     const baselineTopic = state.gameTopic;
     void (async () => {
       try {
-        const topic = await fetchGeneratedTopic();
+        const topic = await fetchGeneratedTopic({
+          usedTopics: topicHistoryRef.current
+        });
         const latest = stateRef.current;
         if (!latest) return;
         const latestLobbyKey = `${latest.createdAt}:${latest.roundIndex}:${latest.phase}`;
