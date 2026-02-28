@@ -20,6 +20,40 @@ type UseRoomConnectionArgs = {
   enabled: boolean;
 };
 
+function isLoopbackHost(hostname: string) {
+  return (
+    hostname === "localhost" ||
+    hostname === "::1" ||
+    hostname === "0.0.0.0" ||
+    hostname === "127.0.0.1" ||
+    hostname.startsWith("127.")
+  );
+}
+
+function resolvePartyKitHost(configuredHost: string | undefined) {
+  const trimmed = configuredHost?.trim() ?? "";
+  if (!trimmed) {
+    if (typeof window === "undefined") return null;
+    return `${window.location.hostname}:1999`;
+  }
+
+  if (typeof window === "undefined") return trimmed;
+
+  try {
+    const parsed = new URL(
+      trimmed.includes("://") ? trimmed : `http://${trimmed}`,
+    );
+    if (!isLoopbackHost(parsed.hostname)) return trimmed;
+
+    const browserHost = window.location.hostname;
+    if (!browserHost || isLoopbackHost(browserHost)) return trimmed;
+
+    return `${browserHost}:${parsed.port || "1999"}`;
+  } catch {
+    return trimmed;
+  }
+}
+
 export function useRoomConnection({
   roomCode,
   nickname,
@@ -40,7 +74,7 @@ export function useRoomConnection({
   const stateRef = useRef<RoomState | null>(null);
   const [nowMs, setNowMs] = useState(() => Date.now());
 
-  const host = process.env.NEXT_PUBLIC_PARTYKIT_HOST;
+  const host = resolvePartyKitHost(process.env.NEXT_PUBLIC_PARTYKIT_HOST);
   const canConnect = Boolean(host) && enabled;
 
   const send = (message: ClientMessage) => {
@@ -88,7 +122,7 @@ export function useRoomConnection({
 
   useEffect(() => {
     if (!canConnect) {
-      setLastError("NEXT_PUBLIC_PARTYKIT_HOST is not configured.");
+      setLastError("PartyKit host is not configured.");
       setConnectionStatus("error");
       return;
     }

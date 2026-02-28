@@ -4,13 +4,15 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
+    "dev:lan": "next dev --hostname 0.0.0.0",
     "build": "next build",
     "start": "next start",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "partykit:dev": "partykit dev",
     "partykit:deploy": "partykit deploy",
-    "dev:all": "concurrently -k -n next,partykit -c cyan,magenta \"pnpm dev\" \"pnpm partykit:dev\""
+    "dev:all": "concurrently -k -n next,partykit -c cyan,magenta \"pnpm dev\" \"pnpm partykit:dev\"",
+    "dev:all:lan": "concurrently -k -n next,partykit -c cyan,magenta \"pnpm dev:lan\" \"pnpm partykit:dev\""
   },
   "dependencies": {
     "class-variance-authority": "^0.7.0",

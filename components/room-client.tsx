@@ -31,7 +31,7 @@ import {
   SEMANTIC_SCORE_WEIGHT,
 } from "@/lib/game/scoring";
 import { playIntroAudio } from "@/lib/intro-audio";
-import { playSubmitAudio } from "@/lib/submit-audio";
+import { playSubmitAudio, primeSubmitAudio } from "@/lib/submit-audio";
 import type {
   Participant,
   ScoreApiResponse,
@@ -40,14 +40,14 @@ import type {
 import { setNicknameCookie } from "@/lib/nickname-cookie";
 import { setRoomCodeCookie } from "@/lib/room-code-cookie";
 import { useRoomConnection } from "@/lib/use-room-connection";
-import { cn, formatSeconds } from "@/lib/utils";
+import { cn, createUuid, formatSeconds } from "@/lib/utils";
 
 function getOrCreateTabSessionId() {
   const key = "jeoprompty.sessionId";
   const storage = window.sessionStorage;
   const existing = storage.getItem(key);
   if (existing) return existing;
-  const created = crypto.randomUUID();
+  const created = createUuid();
   storage.setItem(key, created);
   return created;
 }
@@ -133,6 +133,10 @@ export function RoomClient({
       setNickname(savedNick);
     }
   }, [initialNickname]);
+
+  useEffect(() => {
+    primeSubmitAudio();
+  }, []);
 
   useEffect(() => {
     if (!nickname.trim()) return;
@@ -332,7 +336,7 @@ export function RoomClient({
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          roundId: `prompt-lab-${crypto.randomUUID()}`,
+          roundId: `prompt-lab-${createUuid()}`,
           target: labTarget.trim(),
           submissions: [
             {

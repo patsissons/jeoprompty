@@ -4,6 +4,7 @@ import {
   MAX_PROMPT_SECONDS,
   TOTAL_ROUNDS,
 } from "./constants";
+import { createUuid } from "../utils";
 import type {
   Participant,
   RoomState,
@@ -17,7 +18,7 @@ function now() {
 }
 
 function newRoundId() {
-  return crypto.randomUUID();
+  return createUuid();
 }
 
 const MAX_TOPIC_LENGTH = 80;

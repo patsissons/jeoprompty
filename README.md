@@ -58,6 +58,12 @@ pnpm partykit:dev
 
 5. Open [http://localhost:3000](http://localhost:3000)
 
+LAN/mobile testing:
+
+- Start with `pnpm dev:all:lan`
+- Open `http://<your-lan-ip>:3000` on phones/tablets
+- If `NEXT_PUBLIC_PARTYKIT_HOST` is set to a loopback host (`127.0.0.1`/`localhost`), the client auto-rewrites it to `<your-lan-ip>:1999` when loaded from a LAN URL.
+
 ## How it works
 
 - PartyKit stores the room state in-memory (and persists room snapshots in PartyKit room storage).
