@@ -36,7 +36,7 @@ export function LandingHeroCard() {
         </div>
         <div className="mt-auto grid gap-3 opacity-50 sm:grid-cols-2">
           {[
-            ["10 rounds", "Fast tournament format"],
+            ["5 rounds", "Fast tournament format"],
             ["60 seconds", "Per prompt-writing round"],
           ].map(([title, detail]) => (
             <div key={title} className="rounded-2xl border border-white/10 bg-white/5 p-4">

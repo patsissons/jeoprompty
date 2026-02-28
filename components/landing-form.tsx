@@ -129,7 +129,7 @@ export function LandingForm({
         </div>
         <CardTitle className="text-2xl font-bold tracking-tight">Enter The Room</CardTitle>
         <CardDescription>
-          One room, ten rounds, one question per round. Beat the model with precision.
+          One room, five rounds, one question per round. Beat the model with precision.
         </CardDescription>
       </CardHeader>
       <CardContent className="relative space-y-4">
