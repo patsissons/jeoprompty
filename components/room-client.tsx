@@ -886,7 +886,7 @@ function PlayerPanel({
         </div>
 
         <div className="rounded-xl border border-white/10 bg-white/5 p-3 text-xs text-muted-foreground/40">
-          Prompt rules: start with who/what/when/where/why; max 256 chars; "?" auto-added if missing; no target leakage or spelling hints.
+          Prompt rules: start with who/what/when/where/why; max 256 chars; no target leakage or spelling hints.
         </div>
       </CardContent>
     </Card>
