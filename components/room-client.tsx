@@ -17,6 +17,7 @@ import {
   SEMANTIC_SCORE_WEIGHT
 } from "@/lib/game/scoring";
 import { playIntroAudio } from "@/lib/intro-audio";
+import { playSubmitAudio } from "@/lib/submit-audio";
 import type { Participant, ScoreApiResponse, ScoredSubmission } from "@/lib/game/types";
 import { setNicknameCookie } from "@/lib/nickname-cookie";
 import { setRoomCodeCookie } from "@/lib/room-code-cookie";
@@ -270,6 +271,7 @@ export function RoomClient({
   function handleSubmitPrompt() {
     if (!draftPrompt.trim()) return;
     if (state?.phase !== "prompting" || submittedThisRound) return;
+    playSubmitAudio();
     setPendingSubmittedRoundId(currentRoundId);
     room.submitPrompt(draftPrompt.trim().slice(0, 256));
   }
@@ -283,6 +285,7 @@ export function RoomClient({
       return;
     }
 
+    playSubmitAudio();
     setLabRunLoading(true);
     setLabRunError(null);
 
