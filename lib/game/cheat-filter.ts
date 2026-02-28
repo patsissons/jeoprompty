@@ -1,6 +1,6 @@
 import { clamp } from "@/lib/utils";
 import { MAX_TEXT_LENGTH } from "./constants";
-import { isQuestion, normalizeText, trimToMax } from "./text";
+import { ensureQuestionMark, normalizeText, startsWithQuestionWord, trimToMax } from "./text";
 
 export type CheatFilterInput = {
   prompt: string;
@@ -31,11 +31,12 @@ export function checkPromptForCheating({
 }: CheatFilterInput): CheatFilterResult {
   const cleanedPrompt = trimToMax(prompt, MAX_TEXT_LENGTH);
   if (!cleanedPrompt) return { ok: false, reason: "Prompt is required." };
-  if (!isQuestion(cleanedPrompt)) {
-    return { ok: false, reason: "Prompt must be a question." };
+  if (!startsWithQuestionWord(cleanedPrompt)) {
+    return { ok: false, reason: "Prompt must start with who, what, when, where, or why." };
   }
+  const sanitizedPrompt = ensureQuestionMark(cleanedPrompt, MAX_TEXT_LENGTH);
 
-  const normalizedPrompt = normalizeText(cleanedPrompt);
+  const normalizedPrompt = normalizeText(sanitizedPrompt);
   const normalizedTarget = normalizeText(target);
 
   if (!normalizedPrompt || !normalizedTarget) {
@@ -54,7 +55,7 @@ export function checkPromptForCheating({
     return { ok: false, reason: "Prompt contains the target phrase." };
   }
 
-  if (META_CHEAT_PATTERNS.some((pattern) => pattern.test(cleanedPrompt))) {
+  if (META_CHEAT_PATTERNS.some((pattern) => pattern.test(sanitizedPrompt))) {
     return {
       ok: false,
       reason: "Prompt uses disallowed clueing or spelling strategies."
@@ -71,5 +72,5 @@ export function checkPromptForCheating({
     }
   }
 
-  return { ok: true, sanitizedPrompt: cleanedPrompt };
+  return { ok: true, sanitizedPrompt };
 }

@@ -1,5 +1,7 @@
 import { MAX_TEXT_LENGTH } from "./constants";
 
+const QUESTION_START_PATTERN = /^(who|what|when|where|why)\b/i;
+
 export function trimToMax(text: string, max = MAX_TEXT_LENGTH) {
   return text.trim().slice(0, max);
 }
@@ -16,6 +18,22 @@ export function normalizeText(text: string) {
 
 export function isQuestion(text: string) {
   return /\?\s*$/.test(text.trim());
+}
+
+export function startsWithQuestionWord(text: string) {
+  return QUESTION_START_PATTERN.test(text.trim());
+}
+
+export function ensureQuestionMark(text: string, max = MAX_TEXT_LENGTH) {
+  const trimmed = trimToMax(text, max);
+  if (!trimmed) return trimmed;
+  if (isQuestion(trimmed)) return trimmed;
+
+  const base = trimmed.replace(/[.!\s]+$/g, "").trimEnd();
+  const withQuestion = `${base || trimmed.replace(/\s+$/g, "")}?`;
+
+  if (withQuestion.length <= max) return withQuestion;
+  return `${withQuestion.slice(0, Math.max(0, max - 1))}?`;
 }
 
 export function levenshteinDistance(a: string, b: string) {

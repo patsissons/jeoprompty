@@ -609,7 +609,7 @@ export function RoomClient({
               <CardContent className="space-y-2 text-sm text-muted-foreground">
                 <p>1. Direct match to the target gets max points.</p>
                 <p>2. Otherwise semantic similarity + algorithmic closeness are combined.</p>
-                <p>3. Cheating prompts (target leakage / spelling hints) are rejected.</p>
+                <p>3. Prompts must start with who/what/when/where/why, and cheating prompts are rejected.</p>
               </CardContent>
             </Card>
           )}
@@ -763,7 +763,7 @@ function PlayerPanel({
                 </>
               ) : (
                 <p className="text-sm text-muted-foreground">
-                  Generate a target, enter a question prompt below, then click Test Prompt.
+                  Generate a target, enter a question prompt (who/what/when/where/why) below, then click Test Prompt.
                 </p>
               )}
             </div>
@@ -886,7 +886,7 @@ function PlayerPanel({
         </div>
 
         <div className="rounded-xl border border-white/10 bg-white/5 p-3 text-xs text-muted-foreground/40">
-          Prompt rules: must be a question, max 256 chars, no target leakage, no spelling hints.
+          Prompt rules: start with who/what/when/where/why; max 256 chars; "?" auto-added if missing; no target leakage or spelling hints.
         </div>
       </CardContent>
     </Card>
