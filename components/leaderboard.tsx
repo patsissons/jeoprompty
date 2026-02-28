@@ -39,13 +39,15 @@ export function Leaderboard({
   hostSessionId,
   highlightSessionId,
   title = "Leaderboard",
-  topic
+  topic,
+  topicLoading = false
 }: {
   participants: Participant[];
   hostSessionId?: string | null;
   highlightSessionId?: string;
   title?: string;
   topic?: string | null;
+  topicLoading?: boolean;
 }) {
   const players = participants
     .filter((p) => p.role === "player")
@@ -67,6 +69,15 @@ export function Leaderboard({
               Game Topic
             </div>
             <div className="mt-1 text-sm font-semibold text-cyan-50">{topic}</div>
+          </div>
+        ) : topicLoading ? (
+          <div className="rounded-xl border border-cyan-300/20 bg-cyan-400/10 p-3">
+            <div className="text-[10px] uppercase tracking-[0.18em] text-cyan-100/80">
+              Game Topic
+            </div>
+            <div className="mt-1 text-sm font-semibold text-cyan-50 animate-pulse">
+              Loading topic...
+            </div>
           </div>
         ) : null}
         {players.length === 0 ? (

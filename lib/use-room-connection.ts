@@ -208,8 +208,18 @@ export function useRoomConnection({
     const baselineTopic = state.gameTopic;
     void (async () => {
       try {
+        const trimmedBaselineTopic = baselineTopic.trim();
+        if (trimmedBaselineTopic) {
+          // Clear stale topic immediately so the UI can show a loading state while we generate.
+          send({ type: "set_topic", payload: { topic: "" } });
+        }
         const topic = await fetchGeneratedTopic({
-          usedTopics: topicHistoryRef.current
+          usedTopics: Array.from(
+            new Set([
+              ...topicHistoryRef.current,
+              ...(trimmedBaselineTopic ? [trimmedBaselineTopic] : [])
+            ])
+          )
         });
         const latest = stateRef.current;
         if (!latest) return;
@@ -217,7 +227,9 @@ export function useRoomConnection({
         if (latestLobbyKey !== lobbyKey) return;
         if (latest.phase !== "lobby") return;
         if (latest.hostSessionId !== sessionId) return;
-        if (latest.gameTopic !== baselineTopic) return;
+        const latestTopic = latest.gameTopic.trim();
+        // If someone edited topic while generation was in-flight, do not overwrite.
+        if (latestTopic && latestTopic !== baselineTopic.trim()) return;
         send({ type: "set_topic", payload: { topic } });
       } catch {
         // Local fallback topic is already in room state.

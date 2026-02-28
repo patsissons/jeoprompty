@@ -158,6 +158,7 @@ export function RoomClient({
   const connectedPlayers = players.filter((player) => player.connected).length;
   const playerCount = players.length;
   const submittedCount = state?.submissions.length ?? 0;
+  const topicLoading = (state?.phase ?? "lobby") === "lobby" && !state?.gameTopic?.trim();
   const resolverName =
     participants.find((participant) => participant.sessionId === state?.resolverSessionId)?.nickname ??
     null;
@@ -474,13 +475,18 @@ export function RoomClient({
                     {room.connectionStatus}
                   </Badge>
                   {!watchMode && (state?.phase ?? "lobby") === "lobby" ? (
-                    <Button size="sm" onClick={handleStartGame} disabled={startGameLoading} className="gap-2">
+                    <Button
+                      size="sm"
+                      onClick={handleStartGame}
+                      disabled={startGameLoading || topicLoading}
+                      className="gap-2"
+                    >
                       {startGameLoading ? (
                         <Loader2 className="h-3.5 w-3.5 animate-spin" />
                       ) : (
                         <Rocket className="h-3.5 w-3.5" />
                       )}
-                      {startGameLoading ? "Starting..." : "Start Game"}
+                      {startGameLoading ? "Starting..." : topicLoading ? "Loading topic..." : "Start Game"}
                     </Button>
                   ) : null}
                   {canHostResetToLobby ? (
@@ -552,6 +558,7 @@ export function RoomClient({
                   onReset={handleResetToLobby}
                   canReset={isHost}
                   canEditTopic={isHost && (state?.phase ?? "lobby") === "lobby"}
+                  topicLoading={topicLoading}
                   topicDraft={topicDraft}
                   setTopicDraft={handleTopicDraftChange}
                   onSubmit={handleSubmitPrompt}
@@ -598,6 +605,7 @@ export function RoomClient({
             highlightSessionId={watchMode ? undefined : sessionId ?? undefined}
             title={watchMode ? "Live Leaderboard" : "Room Leaderboard"}
             topic={state?.gameTopic ?? null}
+            topicLoading={topicLoading}
           />
 
           {watchMode ? (
@@ -651,6 +659,7 @@ function PlayerPanel({
   onReset,
   canReset,
   canEditTopic,
+  topicLoading,
   topicDraft,
   setTopicDraft,
   onSubmit,
@@ -675,6 +684,7 @@ function PlayerPanel({
   onReset: () => void;
   canReset: boolean;
   canEditTopic: boolean;
+  topicLoading: boolean;
   topicDraft: string;
   setTopicDraft: (value: string) => void;
   onSubmit: () => void;
@@ -732,9 +742,12 @@ function PlayerPanel({
             <Input
               value={topicDraft}
               onChange={(event) => setTopicDraft(event.target.value)}
-              placeholder="Topic for this game"
+              placeholder={topicLoading ? "Loading topic..." : "Topic for this game"}
               maxLength={80}
             />
+            {topicLoading ? (
+              <p className="text-xs animate-pulse text-cyan-200">Loading topic...</p>
+            ) : null}
             <p className="text-xs text-muted-foreground">
               All round targets will be chosen to match this topic when possible.
             </p>
