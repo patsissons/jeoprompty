@@ -1,51 +1,62 @@
 "use server";
 
-import { EMBEDDING_MODEL, MODEL_NAME } from "@/lib/game/constants";
+import { getEmbeddingModel, getModelName } from "@/lib/game/constants";
 
-type OpenAIResponsePayload = {
-  output_text?: string;
-  output?: Array<{
-    content?: Array<{
-      type?: string;
-      text?: string;
-    }>;
+const OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1";
+
+type ChatCompletionPayload = {
+  choices?: Array<{
+    message?: {
+      content?: string | Array<{ type?: string; text?: string }> | null;
+    };
   }>;
 };
 
 function getApiKey() {
-  const apiKey = process.env.OPENAI_API_KEY;
+  const apiKey = process.env.OPENROUTER_API_KEY;
   if (!apiKey) {
-    throw new Error("OPENAI_API_KEY is not configured.");
+    throw new Error("OPENROUTER_API_KEY is not configured.");
   }
   return apiKey;
 }
 
-async function openAiFetch(path: string, init: RequestInit) {
-  const response = await fetch(`https://api.openai.com${path}`, {
+async function openRouterFetch(path: string, init: RequestInit) {
+  const response = await fetch(`${OPENROUTER_BASE_URL}${path}`, {
     ...init,
     headers: {
       "Content-Type": "application/json",
       Authorization: `Bearer ${getApiKey()}`,
+      "X-Title": "Jeoprompty",
       ...(init.headers ?? {}),
     },
   });
 
   if (!response.ok) {
     const text = await response.text();
-    throw new Error(`OpenAI request failed (${response.status}): ${text}`);
+    throw new Error(`OpenRouter request failed (${response.status}): ${text}`);
   }
 
   return response.json();
 }
 
-function extractOutputText(payload: OpenAIResponsePayload) {
-  if (typeof payload.output_text === "string" && payload.output_text.trim()) {
-    return payload.output_text.trim();
-  }
+// Some models (e.g. openai/gpt-5-*) reject disabling reasoning; remember them
+// so later requests go straight to minimal reasoning effort.
+const reasoningRequiredModels = new Set<string>();
+
+function isReasoningRequiredError(error: unknown) {
+  return (
+    error instanceof Error &&
+    /\(400\)/.test(error.message) &&
+    /reasoning is mandatory/i.test(error.message)
+  );
+}
+
+function extractOutputText(payload: ChatCompletionPayload) {
+  const content = payload.choices?.[0]?.message?.content;
+  if (typeof content === "string") return content.trim();
   const chunks =
-    payload.output
-      ?.flatMap((entry) => entry.content ?? [])
-      .filter((item) => item.type === "output_text" || item.type === "text")
+    content
+      ?.filter((item) => item.type === "text")
       .map((item) => item.text?.trim())
       .filter(Boolean) ?? [];
   return chunks.join(" ").trim();
@@ -60,29 +71,47 @@ export async function generateResponseText({
   userPrompt: string;
   maxOutputTokens?: number;
 }) {
-  const payload = await openAiFetch("/v1/responses", {
-    method: "POST",
-    body: JSON.stringify({
-      model: MODEL_NAME,
-      max_output_tokens: maxOutputTokens,
-      reasoning: { effort: "minimal" },
-      text: { verbosity: "low" },
-      input: [
-        {
-          role: "system",
-          content: systemPrompt,
-        },
-        {
-          role: "user",
-          content: userPrompt,
-        },
-      ],
-    }),
-  });
+  const model = getModelName();
+  const requestCompletion = (reasoningRequired: boolean) =>
+    openRouterFetch("/chat/completions", {
+      method: "POST",
+      body: JSON.stringify({
+        model,
+        max_tokens: maxOutputTokens,
+        // Reasoning tokens count against max_tokens, so keep them off when possible.
+        reasoning: reasoningRequired
+          ? { effort: "minimal", exclude: true }
+          : { enabled: false },
+        messages: [
+          {
+            role: "system",
+            content: systemPrompt,
+          },
+          {
+            role: "user",
+            content: userPrompt,
+          },
+        ],
+      }),
+    });
 
-  const output = extractOutputText(payload as OpenAIResponsePayload);
+  let payload: unknown;
+  try {
+    payload = await requestCompletion(reasoningRequiredModels.has(model));
+  } catch (error) {
+    if (
+      reasoningRequiredModels.has(model) ||
+      !isReasoningRequiredError(error)
+    ) {
+      throw error;
+    }
+    reasoningRequiredModels.add(model);
+    payload = await requestCompletion(true);
+  }
+
+  const output = extractOutputText(payload as ChatCompletionPayload);
   if (!output) {
-    throw new Error("OpenAI returned empty output.");
+    throw new Error("OpenRouter returned empty output.");
   }
   return output;
 }
@@ -197,10 +226,10 @@ type EmbeddingPayload = {
 
 export async function embedTexts(input: string[]) {
   if (input.length === 0) return [];
-  const payload = (await openAiFetch("/v1/embeddings", {
+  const payload = (await openRouterFetch("/embeddings", {
     method: "POST",
     body: JSON.stringify({
-      model: EMBEDDING_MODEL,
+      model: getEmbeddingModel(),
       input,
     }),
   })) as EmbeddingPayload;

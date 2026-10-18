@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 
 import { trimToMax } from "@/lib/game/text";
-import { generateConciseAnswer } from "@/lib/openai";
+import { generateConciseAnswer } from "@/lib/openrouter";
 
 export const runtime = "nodejs";
 
