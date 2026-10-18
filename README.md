@@ -94,6 +94,8 @@ pnpm wrangler secret put OPENROUTER_API_KEY
 pnpm run deploy
 ```
 
+Pushes to `main` deploy automatically via `.github/workflows/deploy.yml`. The worker is served at `jeoprompty.com` through a custom domain route in `wrangler.jsonc`. Cloudflare manages that DNS record, so don't add one by hand.
+
 To test the production worker locally (workerd, same-origin realtime), run `pnpm preview`. Put local secrets for preview in `.dev.vars`.
 
 After changing `wrangler.jsonc`, regenerate binding types with `pnpm cf-typegen`.

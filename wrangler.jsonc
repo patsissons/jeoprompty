@@ -14,6 +14,8 @@
       "service": "jeoprompty",
     },
   ],
+  // The apex must have no existing DNS record; Cloudflare creates it on deploy.
+  "routes": [{ "pattern": "jeoprompty.com", "custom_domain": true }],
   "durable_objects": {
     "bindings": [{ "name": "Room", "class_name": "Room" }],
   },
