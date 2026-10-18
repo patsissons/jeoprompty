@@ -1,0 +1,28 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "jeoprompty",
+  "main": "worker.ts",
+  "compatibility_date": "2026-10-01",
+  "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
+  "assets": {
+    "directory": ".open-next/assets",
+    "binding": "ASSETS",
+  },
+  "services": [
+    {
+      "binding": "WORKER_SELF_REFERENCE",
+      "service": "jeoprompty",
+    },
+  ],
+  "durable_objects": {
+    "bindings": [{ "name": "Room", "class_name": "Room" }],
+  },
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["Room"] }],
+  // OPENROUTER_API_KEY is a secret: `wrangler secret put OPENROUTER_API_KEY`
+  "vars": {
+    "OPENROUTER_MODEL": "deepseek/deepseek-v4.1-flash",
+  },
+  "observability": {
+    "enabled": true,
+  },
+}

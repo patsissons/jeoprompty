@@ -30,14 +30,13 @@ function isLoopbackHost(hostname: string) {
   );
 }
 
-function resolvePartyKitHost(configuredHost: string | undefined) {
-  const trimmed = configuredHost?.trim() ?? "";
-  if (!trimmed) {
-    if (typeof window === "undefined") return null;
-    return `${window.location.hostname}:1999`;
-  }
+function resolvePartyHost(configuredHost: string | undefined) {
+  if (typeof window === "undefined") return null;
+  // In production the room server is served from the same origin as the app.
+  if (process.env.NODE_ENV !== "development") return window.location.host;
 
-  if (typeof window === "undefined") return trimmed;
+  const trimmed = configuredHost?.trim() ?? "";
+  if (!trimmed) return `${window.location.hostname}:1999`;
 
   try {
     const parsed = new URL(
@@ -74,7 +73,7 @@ export function useRoomConnection({
   const stateRef = useRef<RoomState | null>(null);
   const [nowMs, setNowMs] = useState(() => Date.now());
 
-  const host = resolvePartyKitHost(process.env.NEXT_PUBLIC_PARTYKIT_HOST);
+  const host = resolvePartyHost(process.env.NEXT_PUBLIC_PARTY_HOST);
   const canConnect = Boolean(host) && enabled;
 
   const send = (message: ClientMessage) => {
@@ -122,13 +121,14 @@ export function useRoomConnection({
 
   useEffect(() => {
     if (!canConnect) {
-      setLastError("PartyKit host is not configured.");
+      setLastError("Realtime host is not configured.");
       setConnectionStatus("error");
       return;
     }
 
     const socket = new PartySocket({
       host: host!,
+      party: "room",
       room: roomCode.toLowerCase(),
     });
     socketRef.current = socket;

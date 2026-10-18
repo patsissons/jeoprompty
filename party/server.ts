@@ -1,4 +1,4 @@
-import type * as Party from "partykit/server";
+import { Server, type Connection, type WSMessage } from "partyserver";
 
 import {
   applyRoundResults,
@@ -55,10 +55,8 @@ function isScoredSubmissionArray(value: unknown): value is ScoredSubmission[] {
   });
 }
 
-export default class JeopromptyServer implements Party.Server {
+export class Room extends Server {
   private statePromise: Promise<RoomState> | null = null;
-
-  constructor(readonly room: Party.Room) {}
 
   private maybeAdvanceState(
     state: RoomState,
@@ -83,13 +81,11 @@ export default class JeopromptyServer implements Party.Server {
   private async loadState() {
     if (!this.statePromise) {
       this.statePromise = (async () => {
-        const existing = await this.room.storage?.get<RoomState>(STORAGE_KEY);
+        const existing = await this.ctx.storage.get<RoomState>(STORAGE_KEY);
         const state =
           existing ??
           createInitialRoomState(
-            String(this.room.id)
-              .replace(/[^a-z0-9]/gi, "")
-              .toUpperCase(),
+            this.name.replace(/[^a-z0-9]/gi, "").toUpperCase(),
           );
         return state;
       })();
@@ -98,12 +94,12 @@ export default class JeopromptyServer implements Party.Server {
   }
 
   private async saveState(state: RoomState) {
-    await this.room.storage?.put(STORAGE_KEY, state);
+    await this.ctx.storage.put(STORAGE_KEY, state);
   }
 
   private async broadcastState() {
     const state = await this.loadState();
-    this.room.broadcast(stringify({ type: "state", payload: state }));
+    this.broadcast(stringify({ type: "state", payload: state }));
     await this.saveState(state);
   }
 
@@ -119,11 +115,11 @@ export default class JeopromptyServer implements Party.Server {
     );
   }
 
-  private sendError(connection: Party.Connection, message: string) {
+  private sendError(connection: Connection, message: string) {
     connection.send(stringify({ type: "error", payload: { message } }));
   }
 
-  onConnect(connection: Party.Connection) {
+  onConnect(connection: Connection) {
     connection.send(
       stringify({
         type: "toast",
@@ -132,14 +128,15 @@ export default class JeopromptyServer implements Party.Server {
     );
   }
 
-  async onClose(connection: Party.Connection) {
+  async onClose(connection: Connection) {
     const state = await this.loadState();
     markDisconnected(state, connection.id);
     await this.broadcastState();
   }
 
-  async onMessage(rawMessage: string, connection: Party.Connection) {
-    const message = parseMessage(rawMessage);
+  async onMessage(connection: Connection, rawMessage: WSMessage) {
+    const message =
+      typeof rawMessage === "string" ? parseMessage(rawMessage) : null;
     if (!message) {
       this.sendError(connection, "Invalid message payload.");
       return;

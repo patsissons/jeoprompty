@@ -1,0 +1,12 @@
+// Local development only: serves the room Durable Object on port 1999.
+{
+  "$schema": "../node_modules/wrangler/config-schema.json",
+  "name": "jeoprompty-party-dev",
+  "main": "dev-worker.ts",
+  "compatibility_date": "2026-10-01",
+  "compatibility_flags": ["nodejs_compat"],
+  "durable_objects": {
+    "bindings": [{ "name": "Room", "class_name": "Room" }],
+  },
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["Room"] }],
+}

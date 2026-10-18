@@ -7,5 +7,7 @@ dist
 coverage
 .DS_Store
 
-.partykit
+.open-next
+.wrangler
+.dev.vars*
 tsconfig.tsbuildinfo

@@ -1,6 +1,8 @@
 .next
 node_modules
-.partykit
+.open-next
+.wrangler
+worker-configuration.d.ts
 dist
 coverage
 pnpm-lock.yaml
