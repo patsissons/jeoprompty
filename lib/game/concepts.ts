@@ -129,7 +129,7 @@ let embedTextsFn: null | ((input: string[]) => Promise<number[][]>) = null;
 
 async function getEmbedTexts() {
   if (!embedTextsFn) {
-    const { embedTexts } = await import("@/lib/openai");
+    const { embedTexts } = await import("@/lib/openrouter");
     embedTextsFn = embedTexts;
   }
   return embedTextsFn;
@@ -205,8 +205,8 @@ async function isTopicTooSimilar(
   return false;
 }
 
-async function openAiGenerateOneLine(systemPrompt: string, userPrompt: string) {
-  const { generateResponseText } = await import("@/lib/openai");
+async function generateOneLine(systemPrompt: string, userPrompt: string) {
+  const { generateResponseText } = await import("@/lib/openrouter");
   return generateResponseText({
     systemPrompt,
     userPrompt,
@@ -222,7 +222,7 @@ export async function generateCreativeTopic({
     const similarityContext = await buildTopicSimilarityContext(used);
     for (let attempt = 0; attempt < 10; attempt += 1) {
       const lenses = sampleLenses(2);
-      const raw = await openAiGenerateOneLine(
+      const raw = await generateOneLine(
         [
           "You invent game topics for a party trivia prompt-writing game.",
           "Generate ONE topic that is specific, comical, and fun to write clever concepts from that are based on the topic.",
@@ -262,7 +262,7 @@ export async function generateCreativeConcept({
   used?: string[];
 }) {
   try {
-    const raw = await openAiGenerateOneLine(
+    const raw = await generateOneLine(
       [
         "You invent target concepts for a party prompt-writing game.",
         "Generate ONE target concept that is answerable, specific, and fun to write clever questions that describes the concept.",

@@ -13,7 +13,7 @@ import type {
   ScoredSubmission,
 } from "@/lib/game/types";
 import { trimToMax } from "@/lib/game/text";
-import { embedTexts, generateConciseAnswer } from "@/lib/openai";
+import { embedTexts, generateConciseAnswer } from "@/lib/openrouter";
 
 export const runtime = "nodejs";
 
