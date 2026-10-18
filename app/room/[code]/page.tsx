@@ -8,11 +8,12 @@ import {
 } from "@/lib/nickname-cookie";
 
 type Props = {
-  params: { code: string };
-  searchParams?: Record<string, string | string[] | undefined>;
+  params: Promise<{ code: string }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
 };
 
-export function generateMetadata({ params }: Props): Metadata {
+export async function generateMetadata(props: Props): Promise<Metadata> {
+  const params = await props.params;
   const roomCode = params.code.toUpperCase();
 
   return {
@@ -25,8 +26,10 @@ export function generateMetadata({ params }: Props): Metadata {
   };
 }
 
-export default function RoomPage({ params, searchParams }: Props) {
-  const cookieStore = cookies();
+export default async function RoomPage(props: Props) {
+  const params = await props.params;
+  const searchParams = await props.searchParams;
+  const cookieStore = await cookies();
   const watchMode = searchParams?.watch === "1";
   const nickParam = searchParams?.nick;
   const nicknameFromQuery = normalizeNicknameCookie(

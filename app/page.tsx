@@ -12,7 +12,7 @@ import {
 } from "@/lib/room-code-cookie";
 
 type Props = {
-  searchParams?: Record<string, string | string[] | undefined>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
 };
 
 function firstParam(value: string | string[] | undefined) {
@@ -26,8 +26,9 @@ function joinErrorMessage(code: string | undefined) {
   return undefined;
 }
 
-export default function HomePage({ searchParams }: Props) {
-  const cookieStore = cookies();
+export default async function HomePage(props: Props) {
+  const searchParams = await props.searchParams;
+  const cookieStore = await cookies();
   const roomFromQuery = normalizeRoomCodeCookie(firstParam(searchParams?.room));
   const lastRoomCode = normalizeRoomCodeCookie(
     cookieStore.get(ROOM_CODE_COOKIE)?.value,

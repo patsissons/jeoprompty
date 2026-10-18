@@ -1,6 +1,0 @@
-{
-  "$schema": "https://www.partykit.io/schema.json",
-  "name": "jeoprompty",
-  "main": "partykit/room.ts",
-  "compatibilityDate": "2024-11-01"
-}
