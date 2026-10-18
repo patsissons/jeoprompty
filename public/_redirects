@@ -1,0 +1,2 @@
+# Old dynamic OG image route; keep existing link previews working.
+/opengraph-image /opengraph-image.png 301
